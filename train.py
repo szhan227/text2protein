@@ -27,7 +27,7 @@ def main():
     ss_constraints = True if config.data.num_channels == 8 else False
     dataset = ProteinDataset(config.data.dataset_path, config.data.min_res_num,
                              config.data.max_res_num, ss_constraints)
-    train_size = int(0.95 * len(dataset))
+    train_size = max(1, int(0.95 * len(dataset)))
     test_size = len(dataset) - train_size
     train_ds, test_ds = torch.utils.data.random_split(dataset, [train_size, test_size],
                                                       generator=torch.Generator().manual_seed(config.seed))
@@ -157,6 +157,8 @@ def main():
                     pkl.dump(sample.cpu(), fout)
 
                 # save_grid(sample.cpu().numpy(), this_sample_dir.joinpath("sample.png"))
+        print('for test, break here')
+        break
 
 if __name__ == "__main__":
     main()

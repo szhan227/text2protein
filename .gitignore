@@ -11,4 +11,5 @@ scratch/*
 *.png
 **/*.ipynb
 *.pdb
+checkpoints/*
 analysis/*

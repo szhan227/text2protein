@@ -114,9 +114,8 @@ def get_sde_loss_fn(sde, train, eps=1e-5):
     num_elem = mask.reshape(mask.shape[0], -1).sum(dim=-1)
 
     perturbed_data = torch.where(mask, perturbed_data, coords_6d)
-
     score = score_fn(perturbed_data, t)
-
+    print('get score here:', score.shape)
     losses = torch.square(score * std[:, None, None, None] + z) * mask
     losses = torch.sum(losses.reshape(losses.shape[0], -1), dim=-1)
     losses = losses / (num_elem + 1e-8) # 1e-8 added to prevent nan when num_elem TODO: Fix masking to prevent this
@@ -156,6 +155,7 @@ def get_step_fn(sde, train, optimize_fn=None):
       optimizer = state['optimizer']
       optimizer.zero_grad()
       loss = loss_fn(model, batch, condition)
+      print('ready to backward here, loss:', loss)
       loss.backward()
       optimize_fn(optimizer, model.parameters(), step=state['step'])
       state['step'] += 1

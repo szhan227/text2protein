@@ -1,7 +1,7 @@
 training:
   sde: vesde
   n_iters: 2_000_000
-  batch_size: 8
+  batch_size: 1 # used to be 8
   snapshot_freq: 10000
   log_freq: 50
   eval_freq: 100
@@ -18,7 +18,7 @@ sampling:
   corrector: langevin
 
 data:
-  dataset_path: "../diffprot/data/cath"
+  dataset_path: "./pdbs"
   min_res_num: 40
   max_res_num: 256 # used to be 128
   num_channels: 5

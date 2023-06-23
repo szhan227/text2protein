@@ -123,7 +123,9 @@ class ProteinDataset(Dataset):
         with open(path, "r") as f:
             structure = PDBFile.read(f)
 
-        if structure.get_model_count() > 1: return None
+        if structure.get_model_count() > 1:
+            print(f"Skipping {path} due to multiple models: {structure.get_model_count()}")
+            return None
         struct = structure.get_structure()
         # if struc.get_chain_count(struct) > 1: return None
         _, aa = struc.get_residues(struct)
@@ -137,7 +139,9 @@ class ProteinDataset(Dataset):
         aa_str = ''.join(one_letter_aa)
         aa = [letter_to_num[i] for i in one_letter_aa]
         nres = len(aa)
-        if nres > self.max_res_num or nres < self.min_res_num: return None
+        if nres > self.max_res_num or nres < self.min_res_num:
+            print(f"Skipping {path} due to length {nres}")
+            return None
 
         mask = np.ones(nres)
         atom_mask = np.ones((nres, 3))
