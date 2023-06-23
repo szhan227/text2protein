@@ -1,0 +1,64 @@
+training:
+  sde: vesde
+  n_iters: 1_000_000
+  batch_size: 8
+  snapshot_freq: 10000
+  log_freq: 50
+  eval_freq: 100
+  snapshot_freq_for_preemption: 10_000
+  snapshot_sampling: False
+
+sampling:
+  n_steps_each: 1
+  noise_removal: True
+  probability_flow: False
+  snr: 0.17
+  method: pc
+  predictor: reverse_diffusion
+  corrector: langevin
+
+data:
+  dataset_path: "../diffprot/data/cath"
+  min_res_num: 40
+  max_res_num: 128
+  num_channels: 8
+
+model:
+  condition:
+  sigma_max: 100.
+  sigma_min: 0.01
+  num_scales: 2000
+  beta_min: 0.1
+  beta_max: 20.
+  dropout: 0.1
+  embedding_type: positional
+  name: ncsnpp
+  scale_by_sigma: True
+  ema_rate: 0.999
+  normalization: GroupNorm
+  nonlinearity: swish
+  nf: 128
+  ch_mult: [1, 1, 2, 2, 2, 2,]
+  num_res_blocks: 2
+  attn_resolutions: [16,]
+  resamp_with_conv: True
+  skip_rescale: True
+  resblock_type: biggan
+  attention_type: ddpm
+  init_scale: 0.
+  fourier_scale: 16
+  conv_size: 3
+
+optim:
+  weight_decay: 0
+  optimizer: Adam
+  lr: 1.e-4
+  beta1: 0.9
+  eps: 1.e-8
+  warmup: 5000
+  grad_clip: 1.
+
+seed: 42
+device: cuda
+
+

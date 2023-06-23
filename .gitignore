@@ -1,0 +1,14 @@
+.idea/*
+logs/*
+data/*
+**/__pycache__
+results/*
+training/*
+sampling/*
+scratch/*
+*.pkl
+*.svg
+*.png
+**/*.ipynb
+*.pdb
+analysis/*
