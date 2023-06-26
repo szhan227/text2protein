@@ -56,6 +56,9 @@ class NCSNpp(nn.Module):
 
     self.embedding_type = embedding_type = config.model.embedding_type.lower()
 
+    self.self_attn = torch.nn.MultiheadAttention(nf, 8, dropout=0.1)
+    self.cross_attn = torch.nn.MultiheadAttention(nf, 8, dropout=0.1)
+
     assert embedding_type in ['fourier', 'positional']
 
     modules = []
@@ -151,7 +154,11 @@ class NCSNpp(nn.Module):
 
     self.all_modules = nn.ModuleList(modules)
 
-  def forward(self, x, time_cond):
+  def forward(self, x, time_cond, text_emb=None):
+    batch_size = x.shape[0]
+    text_emb_size = 1024
+    text_emb = torch.randn(batch_size, text_emb_size).to(x.device)
+
     modules = self.all_modules
     m_idx = 0
     # Sinusoidal positional embeddings.
@@ -177,6 +184,7 @@ class NCSNpp(nn.Module):
           m_idx += 1
 
         hs.append(h)
+        print('in downsample blocks h:', h.shape)
 
       if i_level != self.num_resolutions - 1:
         if self.resblock_type == 'ddpm':
@@ -186,24 +194,34 @@ class NCSNpp(nn.Module):
           h = modules[m_idx](hs[-1], temb)
           m_idx += 1
 
+
         hs.append(h)
+        print('in downsample blocks h:', h.shape)
 
     h = hs[-1]
     h = modules[m_idx](h, temb)
+    print('in mid block h:', h.shape)
     m_idx += 1
     h = modules[m_idx](h)
+    print('in mid block h:', h.shape)
     m_idx += 1
     h = modules[m_idx](h, temb)
+    print('in mid block h:', h.shape)
     m_idx += 1
+
+    h = self.cross_attn(text_emb, text_emb, h)
+    print('after crossattn h:', h.shape)
 
     # Upsampling block
     for i_level in reversed(range(self.num_resolutions)):
       for i_block in range(self.num_res_blocks + 1):
         h = modules[m_idx](torch.cat([h, hs.pop()], dim=1), temb)
+        print('in upsample blocks h:', h.shape)
         m_idx += 1
 
       if h.shape[-1] in self.attn_resolutions:
         h = modules[m_idx](h)
+        print('in upsample blocks h:', h.shape)
         m_idx += 1
 
       if i_level != 0:
@@ -212,18 +230,22 @@ class NCSNpp(nn.Module):
           m_idx += 1
         else:
           h = modules[m_idx](h, temb)
+          print('in upsample blocks h:', h.shape)
           m_idx += 1
 
     assert not hs
 
     h = self.act(modules[m_idx](h))
+    print('in out block 1 h:', h.shape)
     m_idx += 1
     h = modules[m_idx](h)
+    print('in out block 2 h:', h.shape)
     m_idx += 1
 
     assert m_idx == len(modules)
     if self.config.model.scale_by_sigma:
       used_sigmas = used_sigmas.reshape((x.shape[0], *([1] * len(x.shape[1:]))))
       h = h / used_sigmas
+      print('in out block 3 h:', h.shape)
 
     return h

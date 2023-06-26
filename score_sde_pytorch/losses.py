@@ -115,7 +115,6 @@ def get_sde_loss_fn(sde, train, eps=1e-5):
 
     perturbed_data = torch.where(mask, perturbed_data, coords_6d)
     score = score_fn(perturbed_data, t)
-    print('get score here:', score.shape)
     losses = torch.square(score * std[:, None, None, None] + z) * mask
     losses = torch.sum(losses.reshape(losses.shape[0], -1), dim=-1)
     losses = losses / (num_elem + 1e-8) # 1e-8 added to prevent nan when num_elem TODO: Fix masking to prevent this
