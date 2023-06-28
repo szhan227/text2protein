@@ -1,9 +1,9 @@
 import torch
 from dataset import ProteinDataset, PaddingCollate
-from score_sde_pytorch.models.ncsnpp import NCSNpp
+from score_sde_pytorch.models.ncsnpp import NCSNpp, NCSNpp2
 from easydict import EasyDict
 import yaml
-from transformers import LlamaTokenizer
+from model.attention import SpatialTransformer
 
 if __name__ == '__main__':
     # train_ds = ProteinDataset('./pdbs', max_res_num=256, ss_constraints=False)
@@ -25,15 +25,28 @@ if __name__ == '__main__':
     # print(config)
 
     device = 'cuda'
-    model = NCSNpp(config).to(device)
+    model = NCSNpp2(config).to(device)
     print(model)
     # batch = next(iter(train_dl))
     # coords_6d = batch['coords_6d'].to(device)
+
     coords_6d = torch.randn(1, 5, 256, 256).to(device)
     print('coords_6d', coords_6d.shape)
     timesteps = torch.randint(0, 1000, (1, )).to(device)
     output = model(coords_6d, timesteps)
     print(output.shape)
+
+    # text_emb = torch.randn(2, 256, 1024).to(device)
+    # h = torch.randn(2, 512, 16, 16).to(device)
+    # ch = 512
+    # num_head_channels = -1
+    # nums_head = 8
+    # dim_head = ch // nums_head
+    # trans = SpatialTransformer(in_channels=ch, n_heads=nums_head, d_head=dim_head, context_dim=1024).to(device)
+    # h = trans(x=h, context=text_emb)
+    # print(h.shape)
+
+
 
 
 
