@@ -20,7 +20,7 @@ sampling:
 data:
   dataset_path: "../diffprot/data/cath"
   min_res_num: 40
-  max_res_num: 256 # used to be 128
+  max_res_num: 128
   num_channels: 5
 
 model:
@@ -37,7 +37,7 @@ model:
   ema_rate: 0.999
   normalization: GroupNorm
   nonlinearity: swish
-  nf: 256 # used to be 128
+  nf: 128
   ch_mult: [1, 1, 2, 2, 2, 2,]
   num_res_blocks: 2
   attn_resolutions: [16,]

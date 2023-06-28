@@ -20,7 +20,7 @@ sampling:
 data:
   dataset_path: "./pdbs"
   min_res_num: 40
-  max_res_num: 256 # used to be 128
+  max_res_num: 64 # used to be 128
   num_channels: 5
 
 model:
@@ -37,10 +37,10 @@ model:
   ema_rate: 0.999
   normalization: GroupNorm
   nonlinearity: swish
-  nf: 256 # used to be 128
+  nf: 64 # used to be 128
   ch_mult: [1, 1, 2, 2, 2, 2,]
   num_res_blocks: 2
-  attn_resolutions: [16,]
+  attn_resolutions: [8,] #[8, 16, 32]
   resamp_with_conv: True
   skip_rescale: True
   resblock_type: biggan
@@ -48,6 +48,8 @@ model:
   init_scale: 0.
   fourier_scale: 16
   conv_size: 3
+  n_heads: 8
+  context_dim: 128 # used to be 1024
 
 optim:
   weight_decay: 0

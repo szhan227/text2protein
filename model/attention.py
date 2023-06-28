@@ -257,8 +257,6 @@ class SpatialTransformer(nn.Module):
         # print('show x shape after proj_in: ', x.shape)
         x = rearrange(x, 'b c h w -> b (h w) c')
         for block in self.transformer_blocks:
-            print('here show x shape: ', x.shape)
-            print('here show context shape: ', context.shape)
             x = block(x, context=context)
         x = rearrange(x, 'b (h w) c -> b c h w', h=h, w=w)
         x = self.proj_out(x)

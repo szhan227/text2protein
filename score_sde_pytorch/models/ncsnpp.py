@@ -23,6 +23,7 @@ import torch.nn as nn
 import functools
 import torch
 from model.attention import SpatialTransformer
+from abc import abstractmethod
 
 ResnetBlockDDPM = layers.ResnetBlockDDPMpp
 ResnetBlockBigGAN = layers.ResnetBlockBigGANpp
@@ -33,6 +34,39 @@ get_act = layers.get_act
 get_normalization = normalization.get_normalization
 default_initializer = layers.default_init
 
+
+class TimestepBlock(nn.Module):
+  """
+  Any module where forward() takes timestep embeddings as a second argument.
+  """
+
+  @abstractmethod
+  def forward(self, x, emb):
+    """
+    Apply the module to `x` given `emb` timestep embeddings.
+    """
+
+class TimestepEmbedSequential(nn.Sequential, TimestepBlock):
+    """
+    A sequential module that passes timestep embeddings to the children that
+    support it as an extra input.
+    """
+    def forward(self, x, emb, context=None):
+        for layer in self:
+          try:
+            if type(layer) in (layers.ResnetBlockDDPMpp, layers.ResnetBlockBigGANpp):
+                x = layer(x, emb)
+            elif isinstance(layer, SpatialTransformer):
+                x = layer(x, context)
+            else:
+                x = layer(x)
+          except Exception as e:
+            print('In timestep embed sequential, layer:', layer)
+            print('h shape:', x.shape)
+            print('emb shape:', emb.shape)
+            print('context shape:', context.shape)
+            raise e
+        return x
 
 class NCSNpp2(nn.Module):
   """NCSN++ model"""
@@ -57,6 +91,8 @@ class NCSNpp2(nn.Module):
     init_scale = config.model.init_scale
 
     self.embedding_type = embedding_type = config.model.embedding_type.lower()
+    self.n_heads = n_heads = config.model.n_heads
+    self.context_dim = context_dim = config.model.context_dim
 
     assert embedding_type in ['fourier', 'positional']
 
@@ -112,39 +148,41 @@ class NCSNpp2(nn.Module):
       # Residual blocks for this resolution
       for i_block in range(num_res_blocks):
         out_ch = nf * ch_mult[i_level]
-        modules.append(ResnetBlock(in_ch=in_ch, out_ch=out_ch))
-        self.input_blocks.append(ResnetBlock(in_ch=in_ch, out_ch=out_ch))
-        # print('add resblock', i_level, len(modules))
+        cur_layers = [ResnetBlock(in_ch=in_ch, out_ch=out_ch)]
+
         in_ch = out_ch
 
         if all_resolutions[i_level] in attn_resolutions:
-          modules.append(AttnBlock(channels=in_ch))
-          self.input_blocks.append(AttnBlock(channels=in_ch))
-          # print('add attnblock', i_level, len(modules))
+          cur_layers.append(AttnBlock(channels=in_ch))
+          cur_layers.append(SpatialTransformer(in_channels=in_ch,
+                                               n_heads=n_heads,
+                                               d_head=in_ch // n_heads,
+                                               context_dim=context_dim))
+        self.input_blocks.append(TimestepEmbedSequential(*cur_layers))
         hs_c.append(in_ch)
         self.input_channels.append(in_ch)
 
       if i_level != num_resolutions - 1:
-        if resblock_type == 'ddpm':
-          modules.append(Downsample(in_ch=in_ch))
-          self.input_blocks.append(Downsample(in_ch=in_ch))
-        else:
-          modules.append(ResnetBlock(down=True, in_ch=in_ch))
-          self.input_blocks.append(ResnetBlock(down=True, in_ch=in_ch))
-          # print('add resblock non_last level', i_level, len(modules))
+        self.input_blocks.append(
+          TimestepEmbedSequential(
+            Downsample(in_ch=in_ch) if resblock_type == 'ddpm'
+            else ResnetBlock(down=True, in_ch=in_ch)
+          )
+        )
         hs_c.append(in_ch)
         self.input_channels.append(in_ch)
 
     in_ch = hs_c[-1]
     self.mid_channel = self.input_channels[-1]
-    self.mid_blocks = torch.nn.ModuleList([])
-
-    modules.append(ResnetBlock(in_ch=in_ch))
-    modules.append(AttnBlock(channels=in_ch))
-    modules.append(ResnetBlock(in_ch=in_ch))
-    self.mid_blocks.append(ResnetBlock(in_ch=self.mid_channel))
-    self.mid_blocks.append(AttnBlock(channels=self.mid_channel))
-    self.mid_blocks.append(ResnetBlock(in_ch=self.mid_channel))
+    self.mid_blocks = TimestepEmbedSequential(
+      ResnetBlock(in_ch=self.mid_channel),
+      AttnBlock(channels=self.mid_channel),
+      SpatialTransformer(in_channels=in_ch,
+                         n_heads=n_heads,
+                         d_head=in_ch // n_heads,
+                         context_dim=context_dim),
+      ResnetBlock(in_ch=self.mid_channel)
+    )
 
     # Upsampling block
     self.out_blocks = nn.ModuleList([])
@@ -152,44 +190,35 @@ class NCSNpp2(nn.Module):
     for i_level in reversed(range(num_resolutions)):
       for i_block in range(num_res_blocks + 1):
         out_ch = nf * ch_mult[i_level]
-        modules.append(ResnetBlock(in_ch=in_ch + hs_c.pop(),
-                                   out_ch=out_ch))
-        self.out_blocks.append(ResnetBlock(in_ch=in_ch + self.input_channels.pop(), out_ch=out_ch))
+        cur_layers = [ResnetBlock(in_ch=in_ch + self.input_channels.pop(), out_ch=out_ch)]
         in_ch = out_ch
 
-      if all_resolutions[i_level] in attn_resolutions:
-        modules.append(AttnBlock(channels=in_ch))
-        self.out_blocks.append(AttnBlock(channels=in_ch))
+        if all_resolutions[i_level] in attn_resolutions:
+          cur_layers.append(AttnBlock(channels=in_ch))
+          cur_layers.append(SpatialTransformer(in_channels=in_ch,
+                                               n_heads=n_heads,
+                                               d_head=in_ch // n_heads,
+                                               context_dim=context_dim))
 
-      if i_level != 0:
-        if resblock_type == 'ddpm':
-          modules.append(Upsample(in_ch=in_ch))
-          self.out_blocks.append(Upsample(in_ch=in_ch))
-        else:
-          modules.append(ResnetBlock(in_ch=in_ch, up=True))
-          self.out_blocks.append(ResnetBlock(in_ch=in_ch, up=True))
+        if i_level != 0 and i_block == num_res_blocks:
+          if resblock_type == 'ddpm':
+            cur_layers.append(Upsample(in_ch=in_ch))
+          else:
+            cur_layers.append(ResnetBlock(in_ch=in_ch, up=True))
+        self.out_blocks.append(TimestepEmbedSequential(*cur_layers))
 
-    assert not hs_c
-    assert not self.input_channels
 
     self.out = nn.ModuleList([])
 
-    modules.append(nn.GroupNorm(num_groups=min(in_ch // 4, 32),
-                                num_channels=in_ch, eps=1e-6))
-
-    modules.append(conv3x3(in_ch, channels, init_scale=init_scale))
 
     self.out.append(nn.GroupNorm(num_groups=min(in_ch // 4, 32),
                                 num_channels=in_ch, eps=1e-6))
     self.out.append(self.act)
     self.out.append(conv3x3(in_ch, channels, init_scale=init_scale))
 
-    self.all_modules = nn.ModuleList(modules)
 
   def forward(self, x, time_cond, text_emb=None):
 
-    modules = self.all_modules
-    m_idx = 0
     # Sinusoidal positional embeddings.
     timesteps = time_cond
     used_sigmas = self.sigmas[time_cond.long()]
@@ -198,128 +227,39 @@ class NCSNpp2(nn.Module):
     # pre blocks
     for module in self.pre_blocks:
       temb = module(temb)
-    # temb = modules[m_idx](temb)
-    # m_idx += 1
-    # temb = modules[m_idx](self.act(temb))
-    # m_idx += 1
-
+    x = x.float()
     h = self.pre_conv(x)
-    # Downsampling block
-    # hs = [modules[m_idx](x)]
-    hs = []
+    hs = [h]
 
-    for i, in_module in enumerate(self.input_blocks):
+    # Down Sampling blocks
+    for i, module in enumerate(self.input_blocks):
       try:
-        if isinstance(in_module, layers.AttnBlockpp):
-          h = in_module(h)
-        elif isinstance(in_module, SpatialTransformer):
-          h = in_module(h, text_emb)
-        elif type(in_module) in (layers.ResnetBlockDDPMpp, layers.ResnetBlockBigGANpp):
-          h = in_module(h, temb)
-          hs.append(h)
+        h = module(h, temb, text_emb)
+        # print('in down block', i, 'h shape:', h.shape)
+        hs.append(h)
       except Exception as e:
-        print(f'in_module {i}/{len(self.input_blocks)}:', in_module)
-        raise e
+        print(f'in down block {i}, module is:', module)
+        print('h shape:', h.shape)
+        print('temb shape:', temb.shape)
+        print('text_emb shape:', text_emb.shape)
 
-    # m_idx += 1
-    # for i_level in range(self.num_resolutions):
-    #   # Residual blocks for this resolution
-    #   for i_block in range(self.num_res_blocks):
-    #     h = modules[m_idx](hs[-1], temb)
-    #     m_idx += 1
-    #     if h.shape[-1] in self.attn_resolutions:
-    #     # if True:
-    #       h = modules[m_idx](h)
-    #       m_idx += 1
-    #
-    #     hs.append(h)
-    #     print('in downsample blocks h:', h.shape)
+    # Mid Block
+    h = self.mid_blocks(h, temb, text_emb)
 
-      # if i_level != self.num_resolutions - 1:
-      #   if self.resblock_type == 'ddpm':
-      #     h = modules[m_idx](hs[-1])
-      #     m_idx += 1
-      #   else:
-      #     h = modules[m_idx](hs[-1], temb)
-      #     m_idx += 1
-      #
-      #
-      #   hs.append(h)
-      #   print('in downsample blocks h:', h.shape)
+    # Up Sampling blocks
+    for module in self.out_blocks:
+        h = torch.concatenate([h, hs.pop()], dim=1)
+        h = module(h, temb, text_emb)
 
-    # Mid blocks
-    for mid_module in self.mid_blocks:
-      if isinstance(mid_module, layers.AttnBlockpp):
-        h = mid_module(h)
-      elif isinstance(mid_module, SpatialTransformer):
-        h = mid_module(h, text_emb)
-      elif type(mid_module) in (layers.ResnetBlockDDPMpp, layers.ResnetBlockBigGANpp):
-        h = mid_module(h, temb)
-    # h = hs[-1]
-    # h = modules[m_idx](h, temb)
-    # print('in mid block h:', h.shape)
-    # m_idx += 1
-    # h = modules[m_idx](h)
-    # print('in mid block h:', h.shape)
-    # m_idx += 1
-    # h = modules[m_idx](h, temb)
-    # print('in mid block h:', h.shape)
-    # m_idx += 1
-
-    print('hs length before up:', len(hs))
-    # Upsampling block
-
-    for i, out_module in enumerate(self.out_blocks):
-      try:
-        if isinstance(out_module, layers.AttnBlockpp):
-          h = out_module(h, temb)
-        elif isinstance(out_module, SpatialTransformer):
-          h = out_module(h, text_emb)
-        elif type(out_module) in (layers.ResnetBlockDDPMpp, layers.ResnetBlockBigGANpp):
-          h_last = hs.pop()
-          h = torch.cat([h, h_last], dim=1)
-          h = out_module(h, temb)
-      except Exception as e:
-        print('h:', h.shape)
-        print('h_last:', h_last.shape)
-        print('hs length:', len(hs))
-        raise e
-    # for i_level in reversed(range(self.num_resolutions)):
-    #   for i_block in range(self.num_res_blocks + 1):
-    #     h = modules[m_idx](torch.cat([h, hs.pop()], dim=1), temb)
-    #     print('in upsample blocks h:', h.shape)
-    #     m_idx += 1
-    #
-    #   if h.shape[-1] in self.attn_resolutions:
-    #   # if True:
-    #     h = modules[m_idx](h)
-    #     print('in upsample blocks h:', h.shape)
-    #     m_idx += 1
-    #
-    #   if i_level != 0:
-    #     if self.resblock_type == 'ddpm':
-    #       h = modules[m_idx](h)
-    #       m_idx += 1
-    #     else:
-    #       h = modules[m_idx](h, temb)
-    #       print('in upsample blocks h:', h.shape)
-    #       m_idx += 1
 
     assert not hs
 
     for out in self.out:
       h = out(h)
-    # print('in out block 1 h:', h.shape)
-    # m_idx += 1
-    # h = modules[m_idx](h)
-    # print('in out block 2 h:', h.shape)
-    # m_idx += 1
 
-    # assert m_idx == len(modules)
     if self.config.model.scale_by_sigma:
       used_sigmas = used_sigmas.reshape((x.shape[0], *([1] * len(x.shape[1:]))))
       h = h / used_sigmas
-      print('in out block 3 h:', h.shape)
 
     return h
 
@@ -466,6 +406,7 @@ class NCSNpp(nn.Module):
     m_idx += 1
 
     # Downsampling block
+    print('here show module for first h:', modules[m_idx])
     hs = [modules[m_idx](x)]
     m_idx += 1
     for i_level in range(self.num_resolutions):
@@ -493,6 +434,9 @@ class NCSNpp(nn.Module):
         hs.append(h)
         print('in downsample blocks h:', h.shape)
 
+    print('after downsample, show hs num:', len(hs))
+
+
     h = hs[-1]
     h = modules[m_idx](h, temb)
     print('in mid block h:', h.shape)
@@ -503,6 +447,11 @@ class NCSNpp(nn.Module):
     h = modules[m_idx](h, temb)
     print('in mid block h:', h.shape)
     m_idx += 1
+
+    for hh in hs:
+      print('hh shape:', hh.shape)
+
+    m_b = m_idx
 
     # Upsampling block
     for i_level in reversed(range(self.num_resolutions)):
@@ -526,6 +475,7 @@ class NCSNpp(nn.Module):
           print('in upsample blocks h:', h.shape)
           m_idx += 1
 
+    print('number of up blocks:', m_idx - m_b)
     assert not hs
 
     h = self.act(modules[m_idx](h))

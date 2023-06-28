@@ -3,6 +3,7 @@ from dataset import ProteinDataset, PaddingCollate
 from score_sde_pytorch.models.ncsnpp import NCSNpp, NCSNpp2
 from easydict import EasyDict
 import yaml
+from model.diffusion_sampler import DiffusionSampler
 from model.attention import SpatialTransformer
 
 if __name__ == '__main__':
@@ -20,21 +21,31 @@ if __name__ == '__main__':
     #     collate_fn=PaddingCollate(256)
     # )
 
-    with open('./configs/cond_length.yml', 'r') as f:
+    with open('./configs/test_config.yml', 'r') as f:
         config = EasyDict(yaml.safe_load(f))
     # print(config)
 
     device = 'cuda'
+    # if context shape is [B, N], then add one dimension in the mid to get [B, 1, N]
+    text_emb = torch.randn(1, 1, 128).to(device)
     model = NCSNpp2(config).to(device)
     print(model)
+
     # batch = next(iter(train_dl))
     # coords_6d = batch['coords_6d'].to(device)
 
-    coords_6d = torch.randn(1, 5, 256, 256).to(device)
+    coords_6d = torch.randn(1, 5, 64, 64).to(device)
     print('coords_6d', coords_6d.shape)
     timesteps = torch.randint(0, 1000, (1, )).to(device)
-    output = model(coords_6d, timesteps)
+    output = model(coords_6d, timesteps, text_emb)
     print(output.shape)
+
+    sampler = DiffusionSampler(model).to(device)
+    output = sampler.ddim_sample(shape=(1, 5, 64, 64), context=text_emb)
+
+
+    print("after sampling:", output.shape)
+
 
     # text_emb = torch.randn(2, 256, 1024).to(device)
     # h = torch.randn(2, 512, 16, 16).to(device)
