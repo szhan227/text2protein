@@ -68,8 +68,8 @@ class TimestepEmbedSequential(nn.Sequential, TimestepBlock):
             raise e
         return x
 
-class NCSNpp2(nn.Module):
-  """NCSN++ model"""
+class UNetModel(nn.Module):
+  """UNet model"""
 
   def __init__(self, config):
     super().__init__()

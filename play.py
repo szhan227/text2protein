@@ -1,6 +1,6 @@
 import torch
 from dataset import ProteinDataset, PaddingCollate
-from score_sde_pytorch.models.ncsnpp import NCSNpp, NCSNpp2
+from score_sde_pytorch.models.ncsnpp import NCSNpp, UNetModel
 from easydict import EasyDict
 import yaml
 from model.diffusion_sampler import DiffusionSampler
@@ -28,7 +28,7 @@ if __name__ == '__main__':
     device = 'cuda'
     # if context shape is [B, N], then add one dimension in the mid to get [B, 1, N]
     text_emb = torch.randn(1, 1, 128).to(device)
-    model = NCSNpp2(config).to(device)
+    model = UNetModel(config).to(device)
     print(model)
 
     # batch = next(iter(train_dl))

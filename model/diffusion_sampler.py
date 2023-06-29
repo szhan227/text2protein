@@ -147,11 +147,11 @@ class DiffusionSampler(torch.nn.Module):
         return extract_to_tensor(self.sqrt_alpha_cumprod, t, x_start.shape) * x_start + \
                extract_to_tensor(self.sqrt_one_minus_alphas_cumprod, t, x_start.shape) * noise
 
-    def p_loss(self, x_start, cond, t, noise=None):
+    def p_loss(self, x_start, t, context, noise=None):
         if noise is None:
             noise = torch.randn_like(x_start)
         x_noisy = self.q_sample(x_start, t, noise)
-        pred_noise = self.model(x_noisy, cond, t)
+        pred_noise = self.model(x_noisy, t, context)
 
         if self.loss_type == 'l1':
             loss = torch.abs(pred_noise - noise).mean()
@@ -162,7 +162,7 @@ class DiffusionSampler(torch.nn.Module):
 
         return loss
 
-    def forward(self, x, cond=None):
+    def forward(self, x, context=None):
         t = torch.randint(0, self.timesteps, (x.shape[0],), device=x.device).long()
-        return self.p_loss(x, cond, t)
+        return self.p_loss(x, t, context)
 
