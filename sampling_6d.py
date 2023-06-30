@@ -60,7 +60,9 @@ def main():
     sampling_fn = sampling.get_sampling_fn(config, sde, sampling_shape, sampling_eps)
 
     generated_samples = []
-    for _ in tqdm(range(args.n_iter)):
+    print('start sampling')
+    for _ in range(args.n_iter):
+    # for _ in tqdm(range(args.n_iter)):
         if args.select_length:
             mask = get_mask_all_lengths(config,batch_size=args.batch_size)[args.length_index-1]
             condition = {"length": mask.to(config.device)}
@@ -72,8 +74,10 @@ def main():
         generated_samples.append(sample.cpu())
 
     generated_samples = torch.cat(generated_samples, 0)
+    print('show generated samples shape: ', generated_samples.shape)
 
     workdir.mkdir(parents=True, exist_ok=True)
+    print('save samples to ', workdir.joinpath("samples.pkl"))
     with open(workdir.joinpath("samples.pkl"), "wb") as f:
         pkl.dump(generated_samples, f)
 

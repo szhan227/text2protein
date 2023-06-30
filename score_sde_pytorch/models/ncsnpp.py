@@ -406,7 +406,6 @@ class NCSNpp(nn.Module):
     m_idx += 1
 
     # Downsampling block
-    print('here show module for first h:', modules[m_idx])
     hs = [modules[m_idx](x)]
     m_idx += 1
     for i_level in range(self.num_resolutions):
@@ -420,7 +419,6 @@ class NCSNpp(nn.Module):
           m_idx += 1
 
         hs.append(h)
-        print('in downsample blocks h:', h.shape)
 
       if i_level != self.num_resolutions - 1:
         if self.resblock_type == 'ddpm':
@@ -432,38 +430,26 @@ class NCSNpp(nn.Module):
 
 
         hs.append(h)
-        print('in downsample blocks h:', h.shape)
-
-    print('after downsample, show hs num:', len(hs))
 
 
     h = hs[-1]
     h = modules[m_idx](h, temb)
-    print('in mid block h:', h.shape)
     m_idx += 1
     h = modules[m_idx](h)
-    print('in mid block h:', h.shape)
     m_idx += 1
     h = modules[m_idx](h, temb)
-    print('in mid block h:', h.shape)
     m_idx += 1
 
-    for hh in hs:
-      print('hh shape:', hh.shape)
-
-    m_b = m_idx
 
     # Upsampling block
     for i_level in reversed(range(self.num_resolutions)):
       for i_block in range(self.num_res_blocks + 1):
         h = modules[m_idx](torch.cat([h, hs.pop()], dim=1), temb)
-        print('in upsample blocks h:', h.shape)
         m_idx += 1
 
       if h.shape[-1] in self.attn_resolutions:
       # if True:
         h = modules[m_idx](h)
-        print('in upsample blocks h:', h.shape)
         m_idx += 1
 
       if i_level != 0:
@@ -472,23 +458,18 @@ class NCSNpp(nn.Module):
           m_idx += 1
         else:
           h = modules[m_idx](h, temb)
-          print('in upsample blocks h:', h.shape)
           m_idx += 1
 
-    print('number of up blocks:', m_idx - m_b)
     assert not hs
 
     h = self.act(modules[m_idx](h))
-    print('in out block 1 h:', h.shape)
     m_idx += 1
     h = modules[m_idx](h)
-    print('in out block 2 h:', h.shape)
     m_idx += 1
 
     assert m_idx == len(modules)
     if self.config.model.scale_by_sigma:
       used_sigmas = used_sigmas.reshape((x.shape[0], *([1] * len(x.shape[1:]))))
       h = h / used_sigmas
-      print('in out block 3 h:', h.shape)
 
     return h

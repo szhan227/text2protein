@@ -2,7 +2,8 @@ from score_sde_pytorch.models import ncsnpp
 import torch
 
 def get_model(config):
-    score_model = ncsnpp.NCSNpp(config)
+    # score_model = ncsnpp.NCSNpp(config)
+    score_model = ncsnpp.UNetModel(config)
     score_model = score_model.to(config.device)
     score_model = torch.nn.DataParallel(score_model)
     return score_model

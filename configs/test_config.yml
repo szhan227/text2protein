@@ -20,11 +20,11 @@ sampling:
 data:
   dataset_path: "./pdbs"
   min_res_num: 40
-  max_res_num: 64 # used to be 128
+  max_res_num: 256 # used to be 128
   num_channels: 5
 
 model:
-  condition: ["length"]
+  condition: [] # ["length"]
   sigma_max: 100.
   sigma_min: 0.01
   num_scales: 2000
@@ -37,7 +37,7 @@ model:
   ema_rate: 0.999
   normalization: GroupNorm
   nonlinearity: swish
-  nf: 64 # used to be 128
+  nf: 256 # used to be 128
   ch_mult: [1, 1, 2, 2, 2, 2,]
   num_res_blocks: 2
   attn_resolutions: [8,] #[8, 16, 32]

@@ -109,7 +109,7 @@ def get_conditions_random(config, batch_size=8):
     # Randomly sample pdbs from dataset
     # Load into dataset/loader and extract info: not very elegant
     paths = list(Path(config.data.dataset_path).iterdir())
-    selected = np.random.choice(paths, 100, replace=False)
+    # selected = np.random.choice(paths, 100, replace=False)
     ss_constraints = True if config.data.num_channels == 8 else False
     ds = ProteinDataset(config.data.dataset_path, config.data.min_res_num,
                              config.data.max_res_num, ss_constraints)

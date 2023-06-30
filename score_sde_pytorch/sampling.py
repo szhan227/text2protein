@@ -23,6 +23,7 @@ import abc
 
 from score_sde_pytorch.models.utils import get_score_fn
 from score_sde_pytorch import sde_lib
+from tqdm import tqdm
 
 _CORRECTORS = {}
 _PREDICTORS = {}
@@ -272,8 +273,8 @@ def get_pc_sampler(sde, shape, predictor, corrector, snr,
             x = torch.where(conditional_mask, x, coords_6d)
 
       x_initial = x.detach().clone()
-
-      for i in range(sde.N):
+      for i in tqdm(range(1), desc="SDE Sampling:"):
+      # for i in tqdm(range(sde.N), desc="Sampling"):
         t = timesteps[i]
         vec_t = torch.ones(shape[0], device=t.device) * t
         x, x_mean = corrector_update_fn(x, vec_t, model=model)

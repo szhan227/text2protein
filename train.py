@@ -19,6 +19,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('config', type=str)
     parser.add_argument('--resume', type=str, default=None)
+    parser.add_argument('--local_test', type=bool, default=False)
     args = parser.parse_args()
 
     with open(args.config, 'r') as f:
@@ -137,10 +138,12 @@ def main():
             eval_loss = eval_step_fn(state, eval_batch, condition=config.model.condition)
             writer.add_scalar("eval_loss", eval_loss.item(), step)
 
-        # Save a checkpoint periodically and generate samples if needed
-        if step != 0 and step % config.training.snapshot_freq == 0 or step == config.training.n_iters:
+        # Save a checkpoint periodically and generate samples if needed:
+        if step != 0 and step % config.training.snapshot_freq == 0 or step == config.training.n_iters or args.local_test:
             # Save the checkpoint.
             save_step = step // config.training.snapshot_freq
+            # ckpt_path = checkpoint_dir.joinpath(f'checkpoint_{save_step}.pth')
+            # print('show ckpt_path', ckpt_path)
             save_checkpoint(checkpoint_dir.joinpath(f'checkpoint_{save_step}.pth'), state)
 
             # Generate and save samples
@@ -157,8 +160,9 @@ def main():
                     pkl.dump(sample.cpu(), fout)
 
                 # save_grid(sample.cpu().numpy(), this_sample_dir.joinpath("sample.png"))
-        print('for test, break here')
-        break
+        if args.local_test:
+            print('for local test, break here')
+            break
 
 if __name__ == "__main__":
     main()
