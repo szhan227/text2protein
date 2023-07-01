@@ -25,7 +25,7 @@ if __name__ == '__main__':
         config = EasyDict(yaml.safe_load(f))
     # print(config)
 
-    device = 'cuda'
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
     # if context shape is [B, N], then add one dimension in the mid to get [B, 1, N]
     text_emb = torch.randn(1, 1, 128).to(device)
     model = UNetModel(config).to(device)
