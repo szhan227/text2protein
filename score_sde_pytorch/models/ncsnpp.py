@@ -248,7 +248,7 @@ class UNetModel(nn.Module):
 
     # Up Sampling blocks
     for module in self.out_blocks:
-        h = torch.concatenate([h, hs.pop()], dim=1)
+        h = torch.cat([h, hs.pop()], dim=1)
         h = module(h, temb, text_emb)
 
 
