@@ -11,6 +11,7 @@ from tqdm.contrib.concurrent import process_map
 import biotite.structure as struc
 from biotite.structure.io.pdb import PDBFile
 from torch.utils.data._utils.collate import default_collate
+import json
 
 non_standard_to_standard = {
     '2AS':'ASP', '3AH':'HIS', '5HP':'GLU', 'ACL':'ARG', 'AGM':'ARG', 'AIB':'ALA', 'ALM':'ALA', 'ALO':'THR', 'ALY':'LYS', 'ARM':'ARG',
@@ -42,7 +43,7 @@ letter_to_num = {'C': 4, 'D': 3, 'S': 15, 'Q': 5, 'K': 11, 'I': 9,
                        'N': 2, 'Y': 18, 'M': 12, 'X': 20}
 
 class ProteinDataset(Dataset):
-    def __init__(self, dataset_path, min_res_num=40, max_res_num=256, ss_constraints=True):
+    def __init__(self, dataset_path, description_path, min_res_num=40, max_res_num=256, ss_constraints=True):
         super().__init__()
         # Ignore biotite warnings
         warnings.filterwarnings("ignore", ".*elements were guessed from atom_.*")
@@ -51,12 +52,26 @@ class ProteinDataset(Dataset):
         self.max_res_num = max_res_num
         self.ss_constraints = ss_constraints
 
+        # Load PDB id-caption pairs
+        # self.ann_dict = dict()
+        # with open(description_path, 'r') as json_file:
+        #     # here json format: key=pdb_id, value=caption_embedding
+        #     ann_json = json.load(json_file)
+        # for ann in ann_json:
+        #     self.ann_dict[ann['pdb_id']] = ann['caption']
+
+        try:
+            self.ann_dict = torch.load(description_path)
+        except Exception:
+            self.ann_dict = dict()
+
         # Load PDB files into dataset
         paths = list(Path(dataset_path).iterdir())
         structures = self.parse_pdb(paths)
 
         # Remove None from self.structures
-        self.structures = [self.to_tensor(i) for i in structures if i is not None]
+        self.structures = [self.to_tensor(i)
+                           for i in structures if i is not None]
 
     def parse_pdb(self, paths):
         logging.info(f"Processing dataset of length {len(paths)}...")
@@ -183,7 +198,6 @@ class ProteinDataset(Dataset):
 
         coords_6d = coords_6d * mask_pair.reshape(nres,nres,1) # N, N, C
         coords_6d = coords_6d.transpose(2,0,1) # C, N, N
-
         return {
             "id": path.stem,
             "coords": bb_coords,
@@ -191,7 +205,8 @@ class ProteinDataset(Dataset):
             "aa": aa,
             "aa_str": aa_str,
             "mask_pair": mask_pair,
-            "ss_indices": helix_beta_str # Used for block dropout
+            "ss_indices": helix_beta_str, # Used for block dropout
+            "caption": self.ann_dict.get(path.stem, torch.zeros(1, 128))
         }
 
     def to_tensor(self, d):
@@ -202,7 +217,8 @@ class ProteinDataset(Dataset):
             "aa": torch.long,
             "aa_str": None,
             "mask_pair": torch.bool,
-            "ss_indices": None
+            "ss_indices": None,
+            "caption": None
         }
 
         for k,v in d.items():

@@ -26,7 +26,8 @@ def main():
         config = EasyDict(yaml.safe_load(f))
 
     ss_constraints = True if config.data.num_channels == 8 else False
-    dataset = ProteinDataset(config.data.dataset_path, config.data.min_res_num,
+    dataset = ProteinDataset(config.data.dataset_path, config.data.caption_path,
+                             config.data.min_res_num,
                              config.data.max_res_num, ss_constraints)
     train_size = max(1, int(0.95 * len(dataset)))
     test_size = len(dataset) - train_size

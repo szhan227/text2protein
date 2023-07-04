@@ -218,7 +218,6 @@ class UNetModel(nn.Module):
 
 
   def forward(self, x, time_cond, text_emb=None):
-
     # Sinusoidal positional embeddings.
     timesteps = time_cond
     used_sigmas = self.sigmas[time_cond.long()]

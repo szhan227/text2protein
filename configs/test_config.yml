@@ -19,6 +19,7 @@ sampling:
 
 data:
   dataset_path: "./pdbs"
+  caption_path: "./captions.pt"
   min_res_num: 40
   max_res_num: 256 # used to be 128
   num_channels: 5

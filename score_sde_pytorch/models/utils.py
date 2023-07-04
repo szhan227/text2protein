@@ -109,6 +109,7 @@ def get_model_fn(model, train=False):
       x: A mini-batch of input data.
       labels: A mini-batch of conditioning variables for time steps. Should be interpreted differently
         for different models.
+      context: An embedding of raw text description, encoded by a pretrained text encoder.
     Returns:
       A tuple of (model output, new mutable states)
     """
@@ -135,10 +136,10 @@ def get_score_fn(sde, model, train=False, continuous=False):
   model_fn = get_model_fn(model, train=train)
 
   if isinstance(sde, sde_lib.VPSDE) or isinstance(sde, sde_lib.subVPSDE):
-    def score_fn(x, t):
+    def score_fn(x, t, context=None):
       # Scale neural network output by standard deviation and flip sign
       batch_sz = x.shape[0]
-      text_emb = torch.randn(batch_sz, 1, 128) # TODO use real text embedding
+      text_emb = context # TODO use real text embedding
       if continuous or isinstance(sde, sde_lib.subVPSDE):
         # For VP-trained models, t=0 corresponds to the lowest noise level
         # The maximum value of time embedding is assumed to 999 for
@@ -156,9 +157,9 @@ def get_score_fn(sde, model, train=False, continuous=False):
       return score
 
   elif isinstance(sde, sde_lib.VESDE):
-    def score_fn(x, t):
+    def score_fn(x, t, context=None):
       batch_sz = x.shape[0]
-      text_emb = torch.randn(batch_sz, 1, 128) # TODO use real text embedding
+      text_emb = context # TODO use real text embedding
       if continuous:
         labels = sde.marginal_prob(torch.zeros_like(x), t)[1]
       else:
