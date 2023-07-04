@@ -369,9 +369,14 @@ class PaddingCollate(object):
         max_length = self.max_len if self.max_len else max([len(data["aa"]) for data in data_list])
         data_list_padded = []
         for data in data_list:
-            data_padded = {
-                k: self._pad_last(v, max_length, value=self._get_value(k)) for k,v in data.items()
-            }
+            # data_padded = {
+            #     k: self._pad_last(v, max_length, value=self._get_value(k)) for k,v in data.items()
+            # }
+            data_padded = {}
+            for k, v in data.items():
+                if k != 'caption':
+                    v = self._pad_last(v, max_length, value=self._get_value(k))
+                data_padded[k] = v
             data_list_padded.append(data_padded)
         return default_collate(data_list_padded)
 
