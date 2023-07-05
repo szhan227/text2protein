@@ -45,10 +45,10 @@ if __name__ == '__main__':
 
         llama_model = LlamaForCausalLM.from_pretrained('lmsys/vicuna-13b-v1.3')
         # llama_model = PreTrainedModel.from_pretrained('lmsys/vicuna-13b-v1.3')
-
+        print('load model successfully.')
         # put model on device
         llama_model.to(device)
-
+        print('put model on device successfully.')
         emb = llama_model.model.embed_tokens(tokens)
         print('emb:', emb)
         print('emb shape:', emb.shape)
