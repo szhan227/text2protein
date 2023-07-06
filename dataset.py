@@ -80,7 +80,8 @@ class ProteinDataset(Dataset):
 
         # load pdb files into dataset
         print('Start to parse pdbs...')
-        structures = self.parse_pdb(pdb_paths)
+        # structures = self.parse_pdb(pdb_paths)
+        structures = [self.get_features(path) for path in pdb_paths]
         # Remove None from self.structures
         self.structures = [self.to_tensor(i)
                            for i in structures if i is not None]
