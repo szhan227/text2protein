@@ -13,6 +13,7 @@ from biotite.structure.io.pdb import PDBFile
 from torch.utils.data._utils.collate import default_collate
 import json
 import os
+from tqdm import tqdm
 
 non_standard_to_standard = {
     '2AS':'ASP', '3AH':'HIS', '5HP':'GLU', 'ACL':'ARG', 'AGM':'ARG', 'AIB':'ALA', 'ALM':'ALA', 'ALO':'THR', 'ALY':'LYS', 'ARM':'ARG',
@@ -81,8 +82,14 @@ class ProteinDataset(Dataset):
 
         # load pdb files into dataset
         print('Start to parse pdbs...')
-        structures = self.parse_pdb(pdb_paths)
-        # structures = [self.get_features(path) for path in pdb_paths]
+        # structures = self.parse_pdb(pdb_paths)
+        structures = []
+        for path in tqdm(pdb_paths, desc='Parsing pdbs'):
+            try:
+                structures.append(self.get_features(path))
+            except Exception as e:
+                print(f'Error when parsing {path}: {e}')
+
         # Remove None from self.structures
         self.structures = [self.to_tensor(i)
                            for i in structures if i is not None]
