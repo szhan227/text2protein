@@ -73,12 +73,12 @@ class ProteinDataset(Dataset):
         # Load PDB files into dataset
         # paths = list(Path(dataset_path).iterdir())
         # structures = self.parse_pdb(paths)
-        print('Prepare pdb paths... test mode only load 10 pdbs')
+        print('Prepare pdb paths... test mode only load 1000 pdbs')
         pdb_paths = []
         for root, dirs, files in os.walk(dataset_path):
             for file in files:
                 pdb_paths.append(Path(os.path.join(root, file)))
-        # pdb_paths = pdb_paths[:10]
+        pdb_paths = pdb_paths[:1000]
 
         # load pdb files into dataset
         print('Start to parse pdbs...')
