@@ -12,6 +12,7 @@ import biotite.structure as struc
 from biotite.structure.io.pdb import PDBFile
 from torch.utils.data._utils.collate import default_collate
 import json
+import os
 
 non_standard_to_standard = {
     '2AS':'ASP', '3AH':'HIS', '5HP':'GLU', 'ACL':'ARG', 'AGM':'ARG', 'AIB':'ALA', 'ALM':'ALA', 'ALO':'THR', 'ALY':'LYS', 'ARM':'ARG',
@@ -63,11 +64,19 @@ class ProteinDataset(Dataset):
         try:
             self.ann_dict = torch.load(description_path)
         except Exception:
-            self.ann_dict = dict()
+            with open(description_path, 'r') as json_file:
+                self.ann_dict = json_file
 
         # Load PDB files into dataset
-        paths = list(Path(dataset_path).iterdir())
-        structures = self.parse_pdb(paths)
+        # paths = list(Path(dataset_path).iterdir())
+        # structures = self.parse_pdb(paths)
+        pdb_paths = []
+        for root, dirs, files in os.walk(dataset_path):
+            for file in files:
+                pdb_paths.append(os.path.join(root, file))
+
+        # load pdb files into dataset
+        structures = self.parse_pdb(pdb_paths)
 
         # Remove None from self.structures
         self.structures = [self.to_tensor(i)
@@ -135,11 +144,15 @@ class ProteinDataset(Dataset):
         return constraints, helix_beta_str
 
     def get_features(self, path):
+
+        if len(self.ann_dict) > 0 and path.stem not in self.ann_dict.keys():
+            # skip pdb files that are not in the description file
+            return None
         with open(path, "r") as f:
             structure = PDBFile.read(f)
 
         if structure.get_model_count() > 1:
-            print(f"Skipping {path} due to multiple models: {structure.get_model_count()}")
+            # print(f"Skipping {path} due to multiple models: {structure.get_model_count()}")
             return None
         struct = structure.get_structure()
         # if struc.get_chain_count(struct) > 1: return None
@@ -155,7 +168,7 @@ class ProteinDataset(Dataset):
         aa = [letter_to_num[i] for i in one_letter_aa]
         nres = len(aa)
         if nres > self.max_res_num or nres < self.min_res_num:
-            print(f"Skipping {path} due to length {nres}")
+            # print(f"Skipping {path} due to length {nres}")
             return None
 
         mask = np.ones(nres)

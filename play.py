@@ -6,10 +6,13 @@ import yaml
 from model.diffusion_sampler import DiffusionSampler
 from model.attention import SpatialTransformer
 import json
+from pathlib import Path
+import os
 
 if __name__ == '__main__':
-    train_ds = ProteinDataset('./pdbs', './db.pt', max_res_num=256, ss_constraints=False)
 
+    train_ds = ProteinDataset('./../raw-pdbs', './../caption-pdbs/abstract.json', max_res_num=256, ss_constraints=False)
+    print('train_ds:', len(train_ds))
     train_sampler = torch.utils.data.RandomSampler(
         train_ds,
         replacement=True,
