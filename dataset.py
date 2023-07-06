@@ -53,20 +53,21 @@ class ProteinDataset(Dataset):
         self.max_res_num = max_res_num
         self.ss_constraints = ss_constraints
 
-        # Load PDB id-caption pairs
-        # self.ann_dict = dict()
-        # with open(description_path, 'r') as json_file:
-        #     # here json format: key=pdb_id, value=caption_embedding
-        #     ann_json = json.load(json_file)
-        # for ann in ann_json:
-        #     self.ann_dict[ann['pdb_id']] = ann['caption']
-
         print('Loading annotations...')
-        try:
-            self.ann_dict = torch.load(description_path)
-        except Exception:
-            with open(description_path, 'r') as json_file:
-                self.ann_dict = json_file
+        # Load PDB id-caption pairs
+        self.ann_dict = dict()
+        with open(description_path, 'r') as json_file:
+            # here json format: key=pdb_id, value=caption_embedding
+            ann_json = json.load(json_file)
+        for ann in ann_json:
+            self.ann_dict[ann['pdb_id']] = ann['caption']
+
+
+        # try:
+        #     self.ann_dict = torch.load(description_path)
+        # except Exception:
+        #     with open(description_path, 'r') as json_file:
+        #         self.ann_dict = json_file
         print('Annotations loaded.')
         # Load PDB files into dataset
         # paths = list(Path(dataset_path).iterdir())
