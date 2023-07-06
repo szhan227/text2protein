@@ -61,23 +61,25 @@ class ProteinDataset(Dataset):
         # for ann in ann_json:
         #     self.ann_dict[ann['pdb_id']] = ann['caption']
 
+        print('Loading annotations...')
         try:
             self.ann_dict = torch.load(description_path)
         except Exception:
             with open(description_path, 'r') as json_file:
                 self.ann_dict = json_file
-
+        print('Annotations loaded.')
         # Load PDB files into dataset
         # paths = list(Path(dataset_path).iterdir())
         # structures = self.parse_pdb(paths)
+        print('Prepare pdb paths...')
         pdb_paths = []
         for root, dirs, files in os.walk(dataset_path):
             for file in files:
                 pdb_paths.append(os.path.join(root, file))
 
         # load pdb files into dataset
+        print('Start to parse pdbs...')
         structures = self.parse_pdb(pdb_paths)
-
         # Remove None from self.structures
         self.structures = [self.to_tensor(i)
                            for i in structures if i is not None]
