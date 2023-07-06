@@ -75,9 +75,9 @@ class ProteinDataset(Dataset):
         pdb_paths = []
         for root, dirs, files in os.walk(dataset_path):
             for file in files:
-                pdb_paths.append(os.path.join(root, file))
+                pdb_paths.append(Path(os.path.join(root, file)))
         pdb_paths = pdb_paths[:10]
-        
+
         # load pdb files into dataset
         print('Start to parse pdbs...')
         structures = self.parse_pdb(pdb_paths)
