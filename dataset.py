@@ -82,7 +82,7 @@ class ProteinDataset(Dataset):
         # structures = self.parse_pdb(pdb_paths)
         structures = []
         for i, path in enumerate(pdb_paths):
-            print(f'Parsing pdb {path.stem}: {i+1}/{len(pdb_paths)}', end='')
+            print(f'\rParsing pdb {path.stem}: {i+1}/{len(pdb_paths)}', end='')
             try:
                 structures.append(self.get_features(path))
             except Exception as e:
