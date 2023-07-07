@@ -61,7 +61,10 @@ class ProteinDataset(Dataset):
             # here json format: key=pdb_id, value=caption_embedding
             ann_json = json.load(json_file)
         for ann in ann_json:
-            self.ann_dict[ann['pdb_id']] = ann['caption']
+            caption = ann['caption']
+            if isinstance(caption, list):
+                caption = caption[0]
+            self.ann_dict[ann['pdb_id']] = caption
 
 
         # try:
