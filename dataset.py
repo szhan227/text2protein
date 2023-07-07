@@ -56,22 +56,16 @@ class ProteinDataset(Dataset):
 
         print('Loading annotations...')
         # Load PDB id-caption pairs
-        self.ann_dict = dict()
-        with open(description_path, 'r') as json_file:
-            # here json format: key=pdb_id, value=caption_embedding
-            ann_json = json.load(json_file)
-        for ann in ann_json:
-            caption = ann['caption']
-            if isinstance(caption, list):
-                caption = caption[0]
-            self.ann_dict[ann['pdb_id']] = caption
+        try:
+            self.ann_dict = torch.load(description_path)
+        except Exception:
+            self.ann_dict = dict()
+            with open(description_path, 'r') as json_file:
+                # here json format: key=pdb_id, value=caption_embedding
+                ann_json = json.load(json_file)
+            for ann in ann_json:
+                self.ann_dict[ann['pdb_id']] = ann['caption']
 
-
-        # try:
-        #     self.ann_dict = torch.load(description_path)
-        # except Exception:
-        #     with open(description_path, 'r') as json_file:
-        #         self.ann_dict = json_file
         print('Annotations loaded.')
         # Load PDB files into dataset
         # paths = list(Path(dataset_path).iterdir())
@@ -87,11 +81,13 @@ class ProteinDataset(Dataset):
         print('Start to parse pdbs...')
         # structures = self.parse_pdb(pdb_paths)
         structures = []
-        for path in tqdm(pdb_paths, desc='Parsing pdbs'):
+        for i, path in enumerate(pdb_paths):
+            print(f'Parsing pdb {path.stem}: {i+1}/{len(pdb_paths)}', end='')
             try:
                 structures.append(self.get_features(path))
             except Exception as e:
                 print(f'Error when parsing {path}: {e}')
+        print()
 
         # Remove None from self.structures
         self.structures = [self.to_tensor(i)
