@@ -82,13 +82,13 @@ class ProteinDataset(Dataset):
 
         # load pdb files into dataset
         print('Start to parse pdbs...')
-        structures = self.parse_pdb(pdb_paths)
-        # structures = []
-        # for path in tqdm(pdb_paths, desc='Parsing pdbs'):
-        #     try:
-        #         structures.append(self.get_features(path))
-        #     except Exception as e:
-        #         print(f'Error when parsing {path}: {e}')
+        # structures = self.parse_pdb(pdb_paths)
+        structures = []
+        for path in tqdm(pdb_paths, desc='Parsing pdbs'):
+            try:
+                structures.append(self.get_features(path))
+            except Exception as e:
+                print(f'Error when parsing {path}: {e}')
 
         # Remove None from self.structures
         self.structures = [self.to_tensor(i)
