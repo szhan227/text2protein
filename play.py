@@ -41,7 +41,7 @@ if __name__ == '__main__':
     # # coords_6d = torch.randn(1, 5, 64, 64).to(device)
     print('coords_6d', coords_6d.shape)
     print('id:', batch['id'])
-    print('caption:', batch['caption'].shape)
+    print('caption:', batch['caption'])
 
     # d = {
     #     'pdb_id': '2ki6',
