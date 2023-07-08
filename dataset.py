@@ -70,24 +70,23 @@ class ProteinDataset(Dataset):
         # Load PDB files into dataset
         # paths = list(Path(dataset_path).iterdir())
         # structures = self.parse_pdb(paths)
-        print('Prepare pdb paths... test mode only load 1000 pdbs')
+        print('Prepare pdb paths...')
         pdb_paths = []
         for root, dirs, files in os.walk(dataset_path):
             for file in files:
                 pdb_paths.append(Path(os.path.join(root, file)))
-        pdb_paths = pdb_paths[:1000]
+        # pdb_paths = pdb_paths[:1000]
 
         # load pdb files into dataset
         print('Start to parse pdbs...')
-        # structures = self.parse_pdb(pdb_paths)
-        structures = []
-        for i, path in enumerate(pdb_paths):
-            print(f'\rParsing pdb {path.stem}: {i+1}/{len(pdb_paths)}', end='')
-            try:
-                structures.append(self.get_features(path))
-            except Exception as e:
-                print(f'Error when parsing {path}: {e}')
-        print()
+        structures = self.parse_pdb(pdb_paths)
+        # structures = []
+        # for i, path in tqdm(enumerate(pdb_paths), desc='Parsing pdb:'):
+        #     try:
+        #         structures.append(self.get_features(path))
+        #     except Exception as e:
+        #         print(f'Error when parsing {path}: {e}')
+        # print()
 
         # Remove None from self.structures
         self.structures = [self.to_tensor(i)
@@ -156,10 +155,10 @@ class ProteinDataset(Dataset):
 
     def get_features(self, path):
 
-        if len(self.ann_dict) > 0 and path.stem not in self.ann_dict.keys():
-            # skip pdb files that are not in the description file
-            # print(f"Skipping {path} due to not in description file")
-            return None
+        # if len(self.ann_dict) > 0 and path.stem not in self.ann_dict.keys():
+        #     # skip pdb files that are not in the description file
+        #     return None
+
         with open(path, "r") as f:
             structure = PDBFile.read(f)
 
@@ -231,7 +230,7 @@ class ProteinDataset(Dataset):
             "aa_str": aa_str,
             "mask_pair": mask_pair,
             "ss_indices": helix_beta_str, # Used for block dropout
-            "caption": self.ann_dict.get(path.stem, torch.zeros(1, 128))
+            "caption": self.ann_dict.get(path.stem, torch.zeros(512, 768))
         }
 
     def to_tensor(self, d):

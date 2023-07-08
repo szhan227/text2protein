@@ -11,7 +11,16 @@ import os
 
 if __name__ == '__main__':
 
-    train_ds = ProteinDataset('./../raw-pdbs', './../caption-pdbs/abstract.json', max_res_num=256, ss_constraints=False)
+    local_test = False
+
+    if local_test:
+        pdb_path = './pdbs'
+        caption_path = './ann.json'
+    else:
+        pdb_path = './../raw-pdbs'
+        caption_path = './../caption-pdbs/abstract.json'
+
+    train_ds = ProteinDataset(pdb_path, caption_path, max_res_num=256, ss_constraints=False)
     print('train_ds:', len(train_ds))
     train_sampler = torch.utils.data.RandomSampler(
         train_ds,
@@ -27,34 +36,37 @@ if __name__ == '__main__':
 
     # with open('./configs/test_config.yml', 'r') as f:
     #     config = EasyDict(yaml.safe_load(f))
-    # # print(config)
+    # # # print(config)
+    # #
+    # device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    # # device = 'cpu'
+    # # # if context shape is [B, N], then add one dimension in the mid to get [B, 1, N]
     #
-    device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    # # if context shape is [B, N], then add one dimension in the mid to get [B, 1, N]
-    # text_emb = torch.randn(1, 1, 128).to(device)
     # model = UNetModel(config).to(device)
-    # print(model)
-
-    batch = next(iter(train_dl))
-    coords_6d = batch['coords_6d'].to(device)
+    # # print(model)
     #
-    # # coords_6d = torch.randn(1, 5, 64, 64).to(device)
-    print('coords_6d', coords_6d.shape)
-    print('id:', batch['id'])
-    print('caption:', batch['caption'])
-
-    # d = {
-    #     'pdb_id': '2ki6',
-    #     'caption_emb': torch.randn(1, 1, 128),
-    # }
+    # batch = next(iter(train_dl))
+    # coords_6d = batch['coords_6d'].to(device)
+    # #
+    # # # coords_6d = torch.randn(1, 5, 64, 64).to(device)
+    # print('coords_6d', coords_6d.shape)
+    # print('id:', batch['id'])
+    # print('caption:', batch['caption'])
     #
-    # torch.save(d, './db.pt')
-
-
-
-
-
+    # # d = {
+    # #     'pdb_id': '2ki6',
+    # #     'caption_emb': torch.randn(1, 1, 128),
+    # # }
+    # #
+    # # torch.save(d, './db.pt')
+    #
+    #
+    #
+    #
+    #
     # timesteps = torch.randint(0, 1000, (1, )).to(device)
+    # text_emb = torch.zeros(1, 77, 128).to(device)
+    # print('text emb shape:', text_emb.shape)
     # output = model(coords_6d, timesteps, text_emb)
     # print(output.shape)
     #
