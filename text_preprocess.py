@@ -43,6 +43,7 @@ if __name__ == '__main__':
         print('start to test model:', model_name)
         tokenizer = LlamaTokenizer.from_pretrained(model_name, use_fast=False)
         llama_model = LlamaForCausalLM.from_pretrained(model_name)
+        print('Successfully loaded llm model:', model_name)
 
         abstract_path = './../caption-pdbs/abstract.json'
         with open(abstract_path, 'r') as json_file:
@@ -60,6 +61,7 @@ if __name__ == '__main__':
             dict_to_save[id] = emb
 
         torch.save(dict_to_save, './../caption-pdbs/id2emb.pt')
+        print('Successfully saved id2emb.pt')
 
     except Exception as e:
         print('something wrong:')
