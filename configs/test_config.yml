@@ -62,6 +62,6 @@ optim:
   grad_clip: 1.
 
 seed: 42
-device: cpu
+device: cuda
 
 

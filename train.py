@@ -27,13 +27,14 @@ def main(rank):
 
     n_gpus = torch.cuda.device_count()
 
-    device = 'cpu'
-    if device == 'cuda':
-        device = torch.device('cuda', rank)
-    torch.cuda.set_device(rank)
 
     with open(args.config, 'r') as f:
         config = EasyDict(yaml.safe_load(f))
+
+    device = config.device
+    if device == 'cuda':
+        device = torch.device('cuda', rank)
+    torch.cuda.set_device(rank)
 
     ss_constraints = True if config.data.num_channels == 8 else False
 
