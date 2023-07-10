@@ -43,7 +43,7 @@ if __name__ == '__main__':
 
         print('start to test model:', model_name)
         tokenizer = LlamaTokenizer.from_pretrained(model_name, use_fast=False)
-        # llama_model = LlamaForCausalLM.from_pretrained(model_name)
+        llama_model = LlamaForCausalLM.from_pretrained(model_name)
         print('Successfully loaded llm model on cpu at first:', model_name)
 
         # try:
@@ -59,9 +59,9 @@ if __name__ == '__main__':
         test_toks = test_toks.input_ids
         print('test_toks.shape:', test_toks.shape)
         # print(test_toks)
-        # test_toks = test_toks.to(device)
-        # test_emb = llama_model.model.embed_tokens(test_toks)
-        # print('test_emb.shape:', test_emb.shape)
+        test_toks = test_toks.to(device)
+        test_emb = llama_model.model.embed_tokens(test_toks)
+        print('test_emb.shape:', test_emb.shape)
         #
         #
         # abstract_path = './../caption-pdbs/abstract.json'
