@@ -17,7 +17,9 @@ import shutil
 from model.modeling_llama import LlamaForCausalLM
 from transformers import LlamaTokenizer
 
-def main():
+def main(rank=0):
+    print('in main: show rank:', rank)
+    return
     parser = argparse.ArgumentParser()
     parser.add_argument('config', type=str)
     parser.add_argument('--resume', type=str, default=None)
@@ -172,4 +174,8 @@ def main():
             break
 
 if __name__ == "__main__":
-    main()
+    n_gpus = torch.cuda.device_count()
+    if n_gpus <= 1:
+        main()
+    else:
+        torch.multiprocessing.spawn(main, nprocs=n_gpus)

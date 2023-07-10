@@ -39,7 +39,7 @@ if __name__ == '__main__':
         device = 'cpu'
         print('test preprocess on device:', device)
 
-        model_name = 'lmsys/vicuna-13b-v1.3'
+        model_name = 'lmsys/vicuna-7b-v1.3'
 
         print('start to test model:', model_name)
         tokenizer = LlamaTokenizer.from_pretrained(model_name, use_fast=False)
