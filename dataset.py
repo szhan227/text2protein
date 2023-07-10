@@ -75,7 +75,7 @@ class ProteinDataset(Dataset):
         for root, dirs, files in os.walk(dataset_path):
             for file in files:
                 pdb_paths.append(Path(os.path.join(root, file)))
-        # pdb_paths = pdb_paths[:1000]
+        pdb_paths = pdb_paths[:200]
 
         # load pdb files into dataset
         print('Start to parse pdbs...')
@@ -230,7 +230,7 @@ class ProteinDataset(Dataset):
             "aa_str": aa_str,
             "mask_pair": mask_pair,
             "ss_indices": helix_beta_str, # Used for block dropout
-            "caption": self.ann_dict.get(path.stem, torch.zeros(512, 768))
+            "caption": self.ann_dict.get(path.stem, '')
         }
 
     def to_tensor(self, d):

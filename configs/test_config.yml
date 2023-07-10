@@ -19,7 +19,7 @@ sampling:
 
 data:
   dataset_path: "./pdbs"
-  caption_path: "./captions.pt"
+  caption_path: "./ann.json"
   min_res_num: 40
   max_res_num: 256 # used to be 128
   num_channels: 5
@@ -41,7 +41,7 @@ model:
   nf: 256 # used to be 128
   ch_mult: [1, 1, 2, 2, 2, 2,]
   num_res_blocks: 2
-  attn_resolutions: [8,] #[8, 16, 32]
+  attn_resolutions: [4, 8, 16, 32] #[8, 16, 32]
   resamp_with_conv: True
   skip_rescale: True
   resblock_type: biggan

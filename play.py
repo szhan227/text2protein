@@ -11,28 +11,29 @@ import os
 
 if __name__ == '__main__':
 
-    local_test = False
-
-    if local_test:
-        pdb_path = './pdbs'
-        caption_path = './ann.json'
-    else:
-        pdb_path = './../raw-pdbs'
-        caption_path = './../caption-pdbs/abstract.json'
-
-    train_ds = ProteinDataset(pdb_path, caption_path, max_res_num=256, ss_constraints=False)
-    print('train_ds:', len(train_ds))
-    train_sampler = torch.utils.data.RandomSampler(
-        train_ds,
-        replacement=True,
-        num_samples=2000 * 2
-    )
-    train_dl = torch.utils.data.DataLoader(
-        train_ds,
-        sampler=train_sampler,
-        batch_size=1,
-        collate_fn=PaddingCollate(256)
-    )
+    torch.save(torch.randn(1, 512, 5120), './embb.pt')
+    # local_test = False
+    #
+    # if local_test:
+    #     pdb_path = './pdbs'
+    #     caption_path = './ann.json'
+    # else:
+    #     pdb_path = './../raw-pdbs'
+    #     caption_path = './../caption-pdbs/abstract.json'
+    #
+    # train_ds = ProteinDataset(pdb_path, caption_path, max_res_num=256, ss_constraints=False)
+    # print('train_ds:', len(train_ds))
+    # train_sampler = torch.utils.data.RandomSampler(
+    #     train_ds,
+    #     replacement=True,
+    #     num_samples=2000 * 2
+    # )
+    # train_dl = torch.utils.data.DataLoader(
+    #     train_ds,
+    #     sampler=train_sampler,
+    #     batch_size=1,
+    #     collate_fn=PaddingCollate(256)
+    # )
 
     # with open('./configs/test_config.yml', 'r') as f:
     #     config = EasyDict(yaml.safe_load(f))

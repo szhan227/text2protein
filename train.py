@@ -14,6 +14,8 @@ from easydict import EasyDict
 import time
 from utils import random_mask_batch, get_condition_from_batch
 import shutil
+from model.modeling_llama import LlamaForCausalLM
+from transformers import LlamaTokenizer
 
 def main():
     parser = argparse.ArgumentParser()
@@ -81,7 +83,11 @@ def main():
     score_model = get_model(config)
     ema = ExponentialMovingAverage(score_model.parameters(), decay=config.model.ema_rate)
     optimizer = losses.get_optimizer(config, score_model.parameters())
-    state = dict(optimizer=optimizer, model=score_model, ema=ema, step=0)
+    llm_name = 'lmsys/vicuna-13b-v1.3'
+    # tokenizer = LlamaTokenizer.from_pretrained(llm_name, use_fast=False).to(config.device)
+    # llm = LlamaForCausalLM.from_pretrained(llm_name).to(config.device)
+    tokenizer = llm = None
+    state = dict(optimizer=optimizer, model=score_model, llm=(tokenizer, llm), ema=ema, step=0)
 
     # Create checkpoints directory
     checkpoint_dir = workdir.joinpath("checkpoints")

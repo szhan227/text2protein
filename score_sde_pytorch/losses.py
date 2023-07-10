@@ -78,18 +78,28 @@ def get_sde_loss_fn(sde, train, eps=1e-5):
     A loss function.
   """
 
-  def loss_fn(model, batch, condition=None):
+  def loss_fn(model, batch, condition=None, llm_components=None):
     """Compute the loss function.
     Args:
       model: A score model.
       batch: A mini-batch of training data.
+      llm: A large language model to encode raw text.
     Returns:
       loss: A scalar that represents the average loss value across the mini-batch.
     """
 
     coords_6d = batch["coords_6d"]
     mask_pair = batch["mask_pair"]
-    caption_emb   = batch["caption"]
+
+    # tokenizer, llm = llm_components
+    # caption_raw = batch["caption"]
+    # caption_toks = tokenizer(caption_raw,
+    #                          return_tensors="pt",
+    #                          add_special_tokens=False,
+    #                          max_length=512,
+    #                          padding='max_length')
+    # caption_emb = llm.model.embed_tokens(caption_toks)
+    caption_emb = torch.randn(coords_6d.shape[0], 1, 128)
 
     if "ss" in condition:
       coords_6d = block_dropout(coords_6d, batch["ss_indices"]) # Dropout block adjacencies
@@ -151,11 +161,12 @@ def get_step_fn(sde, train, optimize_fn=None):
       loss: The average loss value of this state.
     """
     model = state['model']
+    tokenizer, llm = state['llm']
     if train:
       optimizer = state['optimizer']
       optimizer.zero_grad()
-      loss = loss_fn(model, batch, condition)
-      print('ready to backward here, loss:', loss)
+      loss = loss_fn(model, batch, condition=condition, llm_components=(tokenizer, llm))
+      # print('ready to backward here, loss:', loss)
       loss.backward()
       optimize_fn(optimizer, model.parameters(), step=state['step'])
       state['step'] += 1
@@ -165,7 +176,7 @@ def get_step_fn(sde, train, optimize_fn=None):
         ema = state['ema']
         ema.store(model.parameters())
         ema.copy_to(model.parameters())
-        loss = loss_fn(model, batch, condition)
+        loss = loss_fn(model, batch, condition=condition, llm_components=(tokenizer, llm))
         ema.restore(model.parameters())
 
     return loss
