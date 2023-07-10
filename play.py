@@ -11,7 +11,6 @@ import os
 
 if __name__ == '__main__':
 
-    torch.save(torch.randn(1, 512, 5120), './embb.pt')
     # local_test = False
     #
     # if local_test:
@@ -35,21 +34,21 @@ if __name__ == '__main__':
     #     collate_fn=PaddingCollate(256)
     # )
 
-    # with open('./configs/test_config.yml', 'r') as f:
-    #     config = EasyDict(yaml.safe_load(f))
+    with open('./configs/test_config.yml', 'r') as f:
+        config = EasyDict(yaml.safe_load(f))
     # # # print(config)
     # #
-    # device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    # # device = 'cpu'
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
+    # device = 'cpu'
     # # # if context shape is [B, N], then add one dimension in the mid to get [B, 1, N]
     #
-    # model = UNetModel(config).to(device)
+    model = UNetModel(config).to(device)
     # # print(model)
     #
     # batch = next(iter(train_dl))
     # coords_6d = batch['coords_6d'].to(device)
     # #
-    # # # coords_6d = torch.randn(1, 5, 64, 64).to(device)
+    coords_6d = torch.randn(1, 5, 256, 256).to(device)
     # print('coords_6d', coords_6d.shape)
     # print('id:', batch['id'])
     # print('caption:', batch['caption'])
@@ -65,11 +64,11 @@ if __name__ == '__main__':
     #
     #
     #
-    # timesteps = torch.randint(0, 1000, (1, )).to(device)
-    # text_emb = torch.zeros(1, 77, 128).to(device)
-    # print('text emb shape:', text_emb.shape)
-    # output = model(coords_6d, timesteps, text_emb)
-    # print(output.shape)
+    timesteps = torch.randint(0, 1000, (1, )).to(device)
+    text_emb = torch.zeros(1, 77, 128).to(device)
+    print('text emb shape:', text_emb.shape)
+    output = model(coords_6d, timesteps, text_emb)
+    print(output.shape)
     #
     # sampler = DiffusionSampler(model).to(device)
     # output = sampler.ddim_sample(shape=(1, 5, 64, 64), context=text_emb)

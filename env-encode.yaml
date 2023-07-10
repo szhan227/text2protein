@@ -1,0 +1,24 @@
+name: text2encode
+channels:
+  - defaults
+  - pytorch
+  - conda-forge
+#  - https://levinthal:paradox@conda.rosettacommons.org
+dependencies:
+  - pip
+  - python=3.8
+  - pytorch=1.12.1
+  - cudatoolkit=11.3
+  - matplotlib
+  - scipy
+  - tqdm
+  - easydict
+  - pyyaml
+  - biotite
+#  - pyrosetta
+  - pip:
+    - fair-esm
+    - tensorflow
+    - einops
+    - transformers
+    - sentencepiece

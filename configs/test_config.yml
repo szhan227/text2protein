@@ -41,7 +41,7 @@ model:
   nf: 256 # used to be 128
   ch_mult: [1, 1, 2, 2, 2, 2,]
   num_res_blocks: 2
-  attn_resolutions: [4, 8, 16, 32] #[8, 16, 32]
+  attn_resolutions: [8, 16, 32] #[8, 16, 32]
   resamp_with_conv: True
   skip_rescale: True
   resblock_type: biggan
@@ -62,6 +62,6 @@ optim:
   grad_clip: 1.
 
 seed: 42
-device: cuda
+device: cpu
 
 
