@@ -45,7 +45,7 @@ letter_to_num = {'C': 4, 'D': 3, 'S': 15, 'Q': 5, 'K': 11, 'I': 9,
                        'N': 2, 'Y': 18, 'M': 12, 'X': 20}
 
 class ProteinDataset(Dataset):
-    def __init__(self, dataset_path, description_path, min_res_num=40, max_res_num=256, ss_constraints=True):
+    def __init__(self, dataset_path, description_path, min_res_num=40, max_res_num=256, ss_constraints=True, local_test=False):
         super().__init__()
         # Ignore biotite warnings
         warnings.filterwarnings("ignore", ".*elements were guessed from atom_.*")
@@ -75,7 +75,10 @@ class ProteinDataset(Dataset):
         for root, dirs, files in os.walk(dataset_path):
             for file in files:
                 pdb_paths.append(Path(os.path.join(root, file)))
-        pdb_paths = pdb_paths[:200]
+
+        if local_test:
+            print('local test: only use 200 pdbs.')
+            pdb_paths = pdb_paths[:200]
 
         # load pdb files into dataset
         print('Start to parse pdbs...')

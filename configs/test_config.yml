@@ -18,8 +18,8 @@ sampling:
   corrector: langevin
 
 data:
-  dataset_path: "./pdbs"
-  caption_path: "./ann.json"
+  dataset_path: "./../raw-pdbs"        # "./pdbs"  for local
+  caption_path: "./../caption-pdbs/abstract.json"    #"./ann.json"  for local
   min_res_num: 40
   max_res_num: 256 # used to be 128
   num_channels: 5
