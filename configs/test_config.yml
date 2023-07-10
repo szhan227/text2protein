@@ -50,7 +50,7 @@ model:
   fourier_scale: 16
   conv_size: 3
   n_heads: 8
-  context_dim: 4096 # 4096 for vicuna-7b, 5120 for vicuna-13b
+  context_dim: 5120 # 4096 for vicuna-7b, 5120 for vicuna-13b
 
 optim:
   weight_decay: 0

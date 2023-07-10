@@ -19,7 +19,6 @@ from transformers import LlamaTokenizer
 
 def main(rank):
     print('in main: show rank:', rank)
-    return
     parser = argparse.ArgumentParser()
     parser.add_argument('config', type=str)
     parser.add_argument('--resume', type=str, default=None)
