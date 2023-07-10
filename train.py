@@ -17,7 +17,7 @@ import shutil
 from model.modeling_llama import LlamaForCausalLM
 from transformers import LlamaTokenizer
 
-def main(rank=0):
+def main(rank):
     print('in main: show rank:', rank)
     return
     parser = argparse.ArgumentParser()
@@ -25,6 +25,13 @@ def main(rank=0):
     parser.add_argument('--resume', type=str, default=None)
     parser.add_argument('--local_test', type=bool, default=False)
     args = parser.parse_args()
+
+    n_gpus = torch.cuda.device_count()
+
+    device = 'cpu'
+    if device == 'cuda':
+        device = torch.device('cuda', rank)
+    torch.cuda.set_device(rank)
 
     with open(args.config, 'r') as f:
         config = EasyDict(yaml.safe_load(f))
@@ -86,9 +93,25 @@ def main(rank=0):
     ema = ExponentialMovingAverage(score_model.parameters(), decay=config.model.ema_rate)
     optimizer = losses.get_optimizer(config, score_model.parameters())
     llm_name = 'lmsys/vicuna-13b-v1.3'
-    # tokenizer = LlamaTokenizer.from_pretrained(llm_name, use_fast=False).to(config.device)
-    # llm = LlamaForCausalLM.from_pretrained(llm_name).to(config.device)
-    tokenizer = llm = None
+    tokenizer = LlamaTokenizer.from_pretrained(llm_name, use_fast=False).to(device)
+    llm = LlamaForCausalLM.from_pretrained(llm_name).to(device)
+    # tokenizer = llm = None
+
+    if n_gpus > 1:
+        score_model = torch.nn.parallel.DistributedDataParallel(
+            score_model,
+            device_ids=[device],
+            broadcast_buffers=False,
+            find_unused_parameters=False)
+
+        print('put score model in parapllel')
+        llm = torch.nn.parallel.DistributedDataParallel(
+            llm,
+            device_ids=[device],
+            broadcast_buffers=False,
+            find_unused_parameters=False)
+        print('put llm in parapllel')
+
     state = dict(optimizer=optimizer, model=score_model, llm=(tokenizer, llm), ema=ema, step=0)
 
     # Create checkpoints directory
@@ -99,7 +122,7 @@ def main(rank=0):
     checkpoint_meta_dir.parent.mkdir(exist_ok=True)
     # Resume training when intermediate checkpoints are detected
     if checkpoint_meta_dir.is_file():
-        state = restore_checkpoint(checkpoint_meta_dir, state, config.device)
+        state = restore_checkpoint(checkpoint_meta_dir, state, device)
         initial_step = int(state['step'])
     else:
         initial_step = 0
@@ -129,7 +152,7 @@ def main(rank=0):
         sampling_fn = sampling.get_sampling_fn(config, sde, sampling_shape, sampling_eps)
 
     for step in range(initial_step, config.training.n_iters + 1):
-        batch = recursive_to(next(train_iter), config.device)
+        batch = recursive_to(next(train_iter), device)
         # Execute one training step
         batch = random_mask_batch(batch, config)
         loss = train_step_fn(state, batch, condition=config.model.condition)
@@ -142,7 +165,7 @@ def main(rank=0):
 
         # Report the loss on an evaluation dataset periodically
         if step % config.training.eval_freq == 0:
-            eval_batch = recursive_to(next(test_iter), config.device)
+            eval_batch = recursive_to(next(test_iter), device)
             eval_batch = random_mask_batch(eval_batch, config)
             eval_loss = eval_step_fn(state, eval_batch, condition=config.model.condition)
             writer.add_scalar("eval_loss", eval_loss.item(), step)
@@ -175,7 +198,8 @@ def main(rank=0):
 
 if __name__ == "__main__":
     n_gpus = torch.cuda.device_count()
+    print('n_gpus', n_gpus)
     if n_gpus <= 1:
-        main()
+        main(0)
     else:
         torch.multiprocessing.spawn(main, nprocs=n_gpus)
