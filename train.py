@@ -96,24 +96,24 @@ def main(rank):
     ema = ExponentialMovingAverage(score_model.parameters(), decay=config.model.ema_rate)
     optimizer = losses.get_optimizer(config, score_model.parameters())
     llm_name = 'lmsys/vicuna-13b-v1.3'
-    tokenizer = LlamaTokenizer.from_pretrained(llm_name, use_fast=False).to(device)
-    llm = LlamaForCausalLM.from_pretrained(llm_name).to(device)
-    # tokenizer = llm = None
+    # tokenizer = LlamaTokenizer.from_pretrained(llm_name, use_fast=False).to(device)
+    # llm = LlamaForCausalLM.from_pretrained(llm_name).to(device)
+    tokenizer = llm = None
 
-    if n_gpus > 1:
-        score_model = torch.nn.parallel.DistributedDataParallel(
-            score_model,
-            device_ids=[device],
-            broadcast_buffers=False,
-            find_unused_parameters=False)
-
-        print('put score model in parapllel')
-        llm = torch.nn.parallel.DistributedDataParallel(
-            llm,
-            device_ids=[device],
-            broadcast_buffers=False,
-            find_unused_parameters=False)
-        print('put llm in parapllel')
+    # if n_gpus > 1:
+    #     score_model = torch.nn.parallel.DistributedDataParallel(
+    #         score_model,
+    #         device_ids=[device],
+    #         broadcast_buffers=False,
+    #         find_unused_parameters=False)
+    #
+    #     print('put score model in parapllel')
+    #     llm = torch.nn.parallel.DistributedDataParallel(
+    #         llm,
+    #         device_ids=[device],
+    #         broadcast_buffers=False,
+    #         find_unused_parameters=False)
+    #     print('put llm in parapllel')
 
     state = dict(optimizer=optimizer, model=score_model, llm=(tokenizer, llm), ema=ema, step=0)
 
