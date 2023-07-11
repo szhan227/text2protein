@@ -76,13 +76,14 @@ class ProteinDataset(Dataset):
             for file in files:
                 pdb_paths.append(Path(os.path.join(root, file)))
 
-        if local_test:
-            print('local test: only use 200 pdbs.')
-            pdb_paths = pdb_paths[:200]
+        # if local_test:
+        #     print('local test: only use 200 pdbs.')
+        #     pdb_paths = pdb_paths[:200]
 
         # load pdb files into dataset
         print('Start to parse pdbs...')
-        structures = self.parse_pdb(pdb_paths)
+        # structures = self.parse_pdb(pdb_paths)
+        self.save_features(pdb_paths)
         # structures = []
         # for i, path in tqdm(enumerate(pdb_paths), desc='Parsing pdb:'):
         #     try:
@@ -92,9 +93,12 @@ class ProteinDataset(Dataset):
         # print()
 
         # Remove None from self.structures
-        self.structures = [self.to_tensor(i)
-                           for i in structures if i is not None]
+        # self.structures = [self.to_tensor(i)
+        #                    for i in structures if i is not None]
 
+    def save_pdb(self, paths):
+        logging.info(f"Processing dataset of length {len(paths)}...")
+        process_map(self.save_features, paths, chunksize=10)
     def parse_pdb(self, paths):
         logging.info(f"Processing dataset of length {len(paths)}...")
         data = list(process_map(self.get_features, paths, chunksize=10))
@@ -155,6 +159,90 @@ class ProteinDataset(Dataset):
         # Convert to string for dataloader
         helix_beta_str = ','.join([f"{i[0]}:{i[-1]}" for i in helix_beta_indices])
         return constraints, helix_beta_str
+
+
+    def save_features(self, path):
+
+        # if len(self.ann_dict) > 0 and path.stem not in self.ann_dict.keys():
+        #     # skip pdb files that are not in the description file
+        #     return None
+
+        with open(path, "r") as f:
+            structure = PDBFile.read(f)
+
+        if structure.get_model_count() > 1:
+            # print(f"Skipping {path} due to multiple models: {structure.get_model_count()}")
+            return
+        struct = structure.get_structure()
+        # if struc.get_chain_count(struct) > 1: return None
+        _, aa = struc.get_residues(struct)
+
+        # Replace nonstandard amino acids
+        for idx,a in enumerate(aa):
+            if a not in three_to_one_letter.keys():
+                aa[idx] = non_standard_to_standard.get(a, "UNK")
+
+        one_letter_aa = [three_to_one_letter[i] for i in aa]
+        aa_str = ''.join(one_letter_aa)
+        aa = [letter_to_num[i] for i in one_letter_aa]
+        nres = len(aa)
+        if nres > self.max_res_num or nres < self.min_res_num:
+            # print(f"Skipping {path} due to length {nres}")
+            return
+
+        mask = np.ones(nres)
+        atom_mask = np.ones((nres, 3))
+
+        bb_coords = []
+        for res_idx, res in enumerate(struc.residue_iter(struct)):
+            # Find backbone + CB atoms
+            atom_types = res.get_annotation("atom_name")
+            all_coords = res.coord[0]
+            crd = []
+            for atom_idx, a in enumerate(["N", "CA", "C"]):
+                idx = np.where(atom_types == a)[0]
+                if idx.size == 0:
+                    atom_mask[res_idx, atom_idx] = 0
+                    # Rolling mask i-1 and i+1 since all 3 atoms are used for CB reconstruction
+                    mask[res_idx] = 0
+                    if res_idx != 0:
+                        mask[res_idx-1] = 0
+                    if res_idx != nres-1:
+                        mask[res_idx+1] = 0
+                    crd.append([0, 0, 0])
+                else:
+                    crd.append(all_coords[idx[0]])
+            bb_coords.append(crd)
+        bb_coords = np.array(bb_coords)
+
+        coords_6d = get_coords6d(bb_coords, dmax=20.0, normalize=True)
+        coords_6d = np.nan_to_num(coords_6d)
+        padding = np.ones((nres,nres)).reshape(nres,nres,1)
+        if self.ss_constraints:
+            block_adj, helix_beta_str = self.get_coarse_constraints(struct[0], coords_6d[:, :, 0], dist_threshold=5)
+            if block_adj is None:
+                return
+            coords_6d = np.concatenate([coords_6d,block_adj,padding],axis=-1)
+        else:
+            coords_6d = np.concatenate([coords_6d, padding], axis=-1)
+            helix_beta_str = []
+        mask_pair = mask.reshape(1,-1) * mask.reshape(-1, 1) # N, N
+
+        coords_6d = coords_6d * mask_pair.reshape(nres,nres,1) # N, N, C
+        coords_6d = coords_6d.transpose(2,0,1) # C, N, N
+
+        to_save = {
+            "id": path.stem,
+            "coords": bb_coords,
+            "coords_6d": coords_6d,
+            "aa": aa,
+            "aa_str": aa_str,
+            "mask_pair": mask_pair,
+            "ss_indices": helix_beta_str, # Used for block dropout
+            # "caption": self.ann_dict.get(path.stem, '')
+        }
+
+        torch.save(to_save, './../processed-pdb-dicts/' + path.stem + '.pt')
 
     def get_features(self, path):
 

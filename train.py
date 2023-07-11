@@ -46,6 +46,8 @@ def main(rank):
                              config.data.max_res_num, ss_constraints,
                              local_test=args.local_test)
     print('Dataset size:', len(dataset))
+    if True:
+        return
     train_size = max(1, int(0.95 * len(dataset)))
     test_size = len(dataset) - train_size
     train_ds, test_ds = torch.utils.data.random_split(dataset, [train_size, test_size],
