@@ -83,7 +83,7 @@ class ProteinDataset(Dataset):
         # load pdb files into dataset
         print('Start to parse pdbs...')
         # structures = self.parse_pdb(pdb_paths)
-        self.save_features(pdb_paths)
+        self.save_pdb(pdb_paths)
         # structures = []
         # for i, path in tqdm(enumerate(pdb_paths), desc='Parsing pdb:'):
         #     try:
