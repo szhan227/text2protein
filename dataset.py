@@ -239,7 +239,7 @@ class ProteinDataset(Dataset):
             "aa_str": aa_str,
             "mask_pair": mask_pair,
             "ss_indices": helix_beta_str, # Used for block dropout
-            # "caption": self.ann_dict.get(path.stem, '')
+            "caption": self.ann_dict.get(path.stem, '')
         }
 
         torch.save(to_save, './../processed-pdb-dicts/' + path.stem + '.pt')
