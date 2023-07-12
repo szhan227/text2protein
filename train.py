@@ -111,20 +111,20 @@ def main(rank):
     # llm = LlamaForCausalLM.from_pretrained(llm_name).to(device)
     tokenizer = llm = None
 
-    if n_gpus > 1:
-        score_model = torch.nn.parallel.DistributedDataParallel(
-            score_model,
-            device_ids=[device],
-            broadcast_buffers=False,
-            find_unused_parameters=False)
-
-        print('put score model in parapllel')
-        llm = torch.nn.parallel.DistributedDataParallel(
-            llm,
-            device_ids=[device],
-            broadcast_buffers=False,
-            find_unused_parameters=False)
-        print('put llm in parapllel')
+    # if n_gpus > 1:
+    #     score_model = torch.nn.parallel.DistributedDataParallel(
+    #         score_model,
+    #         device_ids=[device],
+    #         broadcast_buffers=False,
+    #         find_unused_parameters=False)
+    #
+    #     print('put score model in parapllel')
+    #     llm = torch.nn.parallel.DistributedDataParallel(
+    #         llm,
+    #         device_ids=[device],
+    #         broadcast_buffers=False,
+    #         find_unused_parameters=False)
+    #     print('put llm in parapllel')
 
     state = dict(optimizer=optimizer, model=score_model, llm=(tokenizer, llm), ema=ema, step=0)
 
