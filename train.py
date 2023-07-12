@@ -216,7 +216,7 @@ def main(rank):
 if __name__ == "__main__":
     n_gpus = torch.cuda.device_count()
     print('n_gpus', n_gpus)
-    if n_gpus <= 1:
+    if n_gpus <= 2:
         main(0)
     else:
         torch.multiprocessing.spawn(main, nprocs=n_gpus)
