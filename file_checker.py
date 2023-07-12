@@ -1,7 +1,7 @@
 import os
 import json
 from pathlib import Path
-
+from tqdm import tqdm
 
 def compare_pdb_file_and_caption():
     caption_path = './../caption-pdbs/abstract.json'
@@ -10,13 +10,15 @@ def compare_pdb_file_and_caption():
     caption_name_set = set()
     pdb_name_set = set()
 
+    print('Start to check files')
     with open(caption_path, 'r') as json_file:
         # here json format: key=pdb_id, value=caption_embedding
         ann_json = json.load(json_file)
-    for ann in ann_json:
+    print('Load json file done')
+    for ann in tqdm(ann_json):
         caption_name_set.add(ann['pdb_id'])
 
-    for root, dirs, files in os.walk(pdb_path):
+    for root, dirs, files in tqdm(os.walk(pdb_path)):
         for file in files:
             pdb_name_set.add(file)
 
