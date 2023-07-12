@@ -47,12 +47,12 @@ def main(rank):
     #                          config.data.max_res_num, ss_constraints,
     #                          local_test=args.local_test)
 
-    # dataset = ProteinDataset(dataset_path, caption_path,
-    #                          config.data.min_res_num,
-    #                          config.data.max_res_num, ss_constraints,
-    #                          local_test=args.local_test)
+    dataset = ProteinDataset(dataset_path, caption_path,
+                             config.data.min_res_num,
+                             config.data.max_res_num, ss_constraints,
+                             local_test=args.local_test)
 
-    dataset = ProteinProcessedDataset(processed_dataset_path)
+    # dataset = ProteinProcessedDataset(processed_dataset_path)
     # dataset = ProteinProcessedDataset('./processed-pdb-dicts')
 
     # for bt in dataset:
@@ -82,7 +82,9 @@ def main(rank):
         batch_size=config.training.batch_size,
         collate_fn=PaddingCollate(config.data.max_res_num)
     )
+
     train_iter = iter(train_dl)
+
 
     test_sampler = torch.utils.data.RandomSampler(
         test_ds,

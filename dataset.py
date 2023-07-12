@@ -76,9 +76,9 @@ class ProteinDataset(Dataset):
             for file in files:
                 pdb_paths.append(Path(os.path.join(root, file)))
 
-        # if local_test:
-        #     print('local test: only use 200 pdbs.')
-        #     pdb_paths = pdb_paths[:200]
+        if local_test:
+            print('local test: only use 200 pdbs.')
+            pdb_paths = pdb_paths[:200]
 
         # load pdb files into dataset
         print('Start to parse pdbs...')
@@ -491,7 +491,6 @@ class PaddingCollate(object):
             # }
             data_padded = {}
             for k, v in data.items():
-                print('collate', k, max_length)
                 if k != 'caption':
                     v = self._pad_last(v, max_length, value=self._get_value(k))
                 data_padded[k] = v
