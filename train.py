@@ -32,9 +32,9 @@ def main(rank):
         config = EasyDict(yaml.safe_load(f))
 
     device = config.device
-    if device == 'cuda':
-        device = torch.device('cuda', rank)
-    torch.cuda.set_device(rank)
+    # if device == 'cuda':
+    #     device = torch.device('cuda', rank)
+    # torch.cuda.set_device(rank)
 
     ss_constraints = True if config.data.num_channels == 8 else False
 
@@ -51,8 +51,20 @@ def main(rank):
     #                          config.data.min_res_num,
     #                          config.data.max_res_num, ss_constraints,
     #                          local_test=args.local_test)
+
     dataset = ProteinProcessedDataset(processed_dataset_path)
-    print('Dataset size:', len(dataset))
+    # dataset = ProteinProcessedDataset('./processed-pdb-dicts')
+
+    # for bt in dataset:
+    #     for k, v in bt.items():
+    #         if hasattr(v, 'shape'):
+    #             print(k, v.shape)
+    #         else:
+    #             print(k, v)
+    #     print('------------------------')
+    # return
+    # dataset = ProteinProcessedDataset('./processed-pdb-dicts')
+
 
     train_size = max(1, int(0.95 * len(dataset)))
     test_size = len(dataset) - train_size
@@ -127,7 +139,6 @@ def main(rank):
     #     print('put llm in parapllel')
 
     state = dict(optimizer=optimizer, model=score_model, llm=(tokenizer, llm), ema=ema, step=0)
-
     # Create checkpoints directory
     checkpoint_dir = workdir.joinpath("checkpoints")
     # Intermediate checkpoints to resume training after pre-emption in cloud environments
