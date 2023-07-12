@@ -163,10 +163,10 @@ class ProteinDataset(Dataset):
 
     def save_features(self, path):
 
-        if len(self.ann_dict) > 0 and path.stem not in self.ann_dict.keys():
-            # skip pdb files that are not in the description file
-            return
         try:
+            if len(self.ann_dict) > 0 and path.stem not in self.ann_dict.keys():
+                # skip pdb files that are not in the description file
+                return
             with open(path, "r") as f:
                 structure = PDBFile.read(f)
 
