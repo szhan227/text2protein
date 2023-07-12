@@ -498,6 +498,22 @@ class PaddingCollate(object):
         return default_collate(data_list_padded)
 
 
+# This is the preprocessed dataset with features saved as dicts like ProteinDataset
+class ProteinProcessedDataset(Dataset):
+
+    def __init__(self, root_path):
+        self.root_path = root_path
+        self.data_paths = os.listdir(root_path)
+
+    def __len__(self):
+        return len(self.data_paths)
+
+    def __getitem__(self, idx):
+        data_path = self.data_paths[idx]
+        data = torch.load(os.path.join(self.root_path, data_path))
+        return data
+
+
 if __name__ == "__main__":
 
     import matplotlib.pyplot as plt

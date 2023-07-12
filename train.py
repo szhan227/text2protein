@@ -7,7 +7,7 @@ import score_sde_pytorch.sde_lib as sde_lib
 import torch
 from torch.utils import tensorboard
 from score_sde_pytorch.utils import save_checkpoint, restore_checkpoint, get_model, recursive_to
-from dataset import ProteinDataset, PaddingCollate
+from dataset import ProteinDataset, ProteinProcessedDataset, PaddingCollate
 import pickle as pkl
 import yaml
 from easydict import EasyDict
@@ -40,14 +40,15 @@ def main(rank):
 
     dataset_path = config.data.dataset_path
     caption_path = config.data.caption_path
+    processed_dataset_path = config.data.processed_dataset_path
 
-    dataset = ProteinDataset(dataset_path, caption_path,
-                             config.data.min_res_num,
-                             config.data.max_res_num, ss_constraints,
-                             local_test=args.local_test)
+    # dataset = ProteinDataset(dataset_path, caption_path,
+    #                          config.data.min_res_num,
+    #                          config.data.max_res_num, ss_constraints,
+    #                          local_test=args.local_test)
+    dataset = ProteinProcessedDataset(processed_dataset_path)
     print('Dataset size:', len(dataset))
-    if True:
-        return
+
     train_size = max(1, int(0.95 * len(dataset)))
     test_size = len(dataset) - train_size
     train_ds, test_ds = torch.utils.data.random_split(dataset, [train_size, test_size],
@@ -100,25 +101,25 @@ def main(rank):
     score_model = get_model(config)
     ema = ExponentialMovingAverage(score_model.parameters(), decay=config.model.ema_rate)
     optimizer = losses.get_optimizer(config, score_model.parameters())
-    llm_name = 'lmsys/vicuna-13b-v1.3'
-    # tokenizer = LlamaTokenizer.from_pretrained(llm_name, use_fast=False).to(device)
-    # llm = LlamaForCausalLM.from_pretrained(llm_name).to(device)
-    tokenizer = llm = None
+    llm_name = 'lmsys/vicuna-7b-v1.3'
+    tokenizer = LlamaTokenizer.from_pretrained(llm_name, use_fast=False).to(device)
+    llm = LlamaForCausalLM.from_pretrained(llm_name).to(device)
+    # tokenizer = llm = None
 
-    # if n_gpus > 1:
-    #     score_model = torch.nn.parallel.DistributedDataParallel(
-    #         score_model,
-    #         device_ids=[device],
-    #         broadcast_buffers=False,
-    #         find_unused_parameters=False)
-    #
-    #     print('put score model in parapllel')
-    #     llm = torch.nn.parallel.DistributedDataParallel(
-    #         llm,
-    #         device_ids=[device],
-    #         broadcast_buffers=False,
-    #         find_unused_parameters=False)
-    #     print('put llm in parapllel')
+    if n_gpus > 1:
+        score_model = torch.nn.parallel.DistributedDataParallel(
+            score_model,
+            device_ids=[device],
+            broadcast_buffers=False,
+            find_unused_parameters=False)
+
+        print('put score model in parapllel')
+        llm = torch.nn.parallel.DistributedDataParallel(
+            llm,
+            device_ids=[device],
+            broadcast_buffers=False,
+            find_unused_parameters=False)
+        print('put llm in parapllel')
 
     state = dict(optimizer=optimizer, model=score_model, llm=(tokenizer, llm), ema=ema, step=0)
 

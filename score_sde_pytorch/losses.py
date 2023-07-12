@@ -91,15 +91,15 @@ def get_sde_loss_fn(sde, train, eps=1e-5):
     coords_6d = batch["coords_6d"]
     mask_pair = batch["mask_pair"]
 
-    # tokenizer, llm = llm_components
-    # caption_raw = batch["caption"]
-    # caption_toks = tokenizer(caption_raw,
-    #                          return_tensors="pt",
-    #                          add_special_tokens=False,
-    #                          max_length=512,
-    #                          padding='max_length')
-    # caption_emb = llm.model.embed_tokens(caption_toks)
-    caption_emb = torch.randn(coords_6d.shape[0], 1, 128)
+    tokenizer, llm = llm_components
+    caption_raw = batch["caption"]
+    caption_toks = tokenizer(caption_raw,
+                             return_tensors="pt",
+                             add_special_tokens=False,
+                             max_length=512,
+                             padding='max_length')
+    caption_emb = llm.model.embed_tokens(caption_toks)
+    # caption_emb = torch.randn(coords_6d.shape[0], 1, 128)
 
     if "ss" in condition:
       coords_6d = block_dropout(coords_6d, batch["ss_indices"]) # Dropout block adjacencies
