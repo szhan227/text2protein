@@ -39,7 +39,7 @@ if __name__ == '__main__':
     for ann in ann_json:
         ann_dict[ann['pdb_id']] = ann['caption']
 
-    for pbd_path in tqdm(os.listdir('./../processed_pdb_dicts')):
-        pdb_dict = torch.load(os.path.join('./../processed_pdb_dicts', pbd_path))
+    for pbd_path in tqdm(os.listdir('./../processed-pdb-dicts')):
+        pdb_dict = torch.load(os.path.join('./../processed-pdb-dicts', pbd_path))
         pdb_dict['caption'] = ann_dict[pbd_path.split('.')[0]]
-        torch.save(pdb_dict, os.path.join('./../processed_pdb_dicts', pbd_path))
+        torch.save(pdb_dict, os.path.join('./../processed-pdb-dicts', pbd_path))
