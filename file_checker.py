@@ -20,7 +20,7 @@ def compare_pdb_file_and_caption():
 
     for root, dirs, files in tqdm(os.walk(pdb_path)):
         for file in files:
-            pdb_name_set.add(file)
+            pdb_name_set.add(file.name.split('.')[0])
 
     print('caption_name_set:', len(caption_name_set))
     print('pdb_name_set:', len(pdb_name_set))
