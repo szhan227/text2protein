@@ -22,7 +22,7 @@ class SDE(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def sde(self, x, t):
+  def sde(self, x, t, context=None):
     pass
 
   @abc.abstractmethod
@@ -46,18 +46,19 @@ class SDE(abc.ABC):
     """
     pass
 
-  def discretize(self, x, t):
+  def discretize(self, x, t, context=None):
     """Discretize the SDE in the form: x_{i+1} = x_i + f_i(x_i) + G_i z_i.
     Useful for reverse diffusion sampling and probabiliy flow sampling.
     Defaults to Euler-Maruyama discretization.
     Args:
       x: a torch tensor
       t: a torch float representing the time step (from 0 to `self.T`)
+        context: a torch tensor representing the context (e.g., textual embedding)
     Returns:
       f, G
     """
     dt = 1 / self.N
-    drift, diffusion = self.sde(x, t)
+    drift, diffusion = self.sde(x, t, context)
     f = drift * dt
     G = diffusion * torch.sqrt(torch.tensor(dt, device=t.device))
     return f, G
@@ -83,18 +84,18 @@ class SDE(abc.ABC):
       def T(self):
         return T
 
-      def sde(self, x, t):
+      def sde(self, x, t, context=None):
         """Create the drift and diffusion functions for the reverse SDE/ODE."""
-        drift, diffusion = sde_fn(x, t)
-        score = score_fn(x, t)
+        drift, diffusion = sde_fn(x, t, context)
+        score = score_fn(x, t, context)
         drift = drift - diffusion[:, None, None, None] ** 2 * score * (0.5 if self.probability_flow else 1.)
         # Set the diffusion function to zero for ODEs.
         diffusion = 0. if self.probability_flow else diffusion
         return drift, diffusion
 
-      def discretize(self, x, t):
+      def discretize(self, x, t, context=None):
         """Create discretized iteration rules for the reverse diffusion sampler."""
-        f, G = discretize_fn(x, t)
+        f, G = discretize_fn(x, t, context)
         rev_f = f - G[:, None, None, None] ** 2 * score_fn(x, t) * (0.5 if self.probability_flow else 1.)
         rev_G = torch.zeros_like(G) if self.probability_flow else G
         return rev_f, rev_G
@@ -124,7 +125,7 @@ class VPSDE(SDE):
   def T(self):
     return 1
 
-  def sde(self, x, t):
+  def sde(self, x, t, context=None):
     beta_t = self.beta_0 + t * (self.beta_1 - self.beta_0)
     drift = -0.5 * beta_t[:, None, None, None] * x
     diffusion = torch.sqrt(beta_t)
@@ -213,7 +214,7 @@ class VESDE(SDE):
   def T(self):
     return 1
 
-  def sde(self, x, t):
+  def sde(self, x, t, context=None):
     sigma = self.sigma_min * (self.sigma_max / self.sigma_min) ** t
     drift = torch.zeros_like(x)
     diffusion = sigma * torch.sqrt(torch.tensor(2 * (np.log(self.sigma_max) - np.log(self.sigma_min)),

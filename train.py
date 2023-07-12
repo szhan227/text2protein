@@ -42,6 +42,11 @@ def main(rank):
     caption_path = config.data.caption_path
     processed_dataset_path = config.data.processed_dataset_path
 
+    # dataset = ProteinDataset('./pdbs', './ann.json',
+    #                          config.data.min_res_num,
+    #                          config.data.max_res_num, ss_constraints,
+    #                          local_test=args.local_test)
+
     # dataset = ProteinDataset(dataset_path, caption_path,
     #                          config.data.min_res_num,
     #                          config.data.max_res_num, ss_constraints,
@@ -102,9 +107,9 @@ def main(rank):
     ema = ExponentialMovingAverage(score_model.parameters(), decay=config.model.ema_rate)
     optimizer = losses.get_optimizer(config, score_model.parameters())
     llm_name = 'lmsys/vicuna-7b-v1.3'
-    tokenizer = LlamaTokenizer.from_pretrained(llm_name, use_fast=False).to(device)
-    llm = LlamaForCausalLM.from_pretrained(llm_name).to(device)
-    # tokenizer = llm = None
+    # tokenizer = LlamaTokenizer.from_pretrained(llm_name, use_fast=False).to(device)
+    # llm = LlamaForCausalLM.from_pretrained(llm_name).to(device)
+    tokenizer = llm = None
 
     if n_gpus > 1:
         score_model = torch.nn.parallel.DistributedDataParallel(
@@ -165,6 +170,7 @@ def main(rank):
         # Execute one training step
         batch = random_mask_batch(batch, config)
         loss = train_step_fn(state, batch, condition=config.model.condition)
+
         if step % config.training.log_freq == 0:
             writer.add_scalar("training_loss", loss, step)
 
@@ -180,7 +186,8 @@ def main(rank):
             writer.add_scalar("eval_loss", eval_loss.item(), step)
 
         # Save a checkpoint periodically and generate samples if needed:
-        if step != 0 and step % config.training.snapshot_freq == 0 or step == config.training.n_iters or args.local_test:
+        if True:
+        # if step != 0 and step % config.training.snapshot_freq == 0 or step == config.training.n_iters or args.local_test:
             # Save the checkpoint.
             save_step = step // config.training.snapshot_freq
             # ckpt_path = checkpoint_dir.joinpath(f'checkpoint_{save_step}.pth')
@@ -192,7 +199,8 @@ def main(rank):
                 ema.store(score_model.parameters())
                 ema.copy_to(score_model.parameters())
                 condition = get_condition_from_batch(config, eval_batch)
-                sample, n = sampling_fn(score_model, condition=condition)
+                context = torch.randn(config.training.batch_size, 1, 128)
+                sample, n = sampling_fn(score_model, condition=condition, context=context)
                 ema.restore(score_model.parameters())
                 this_sample_dir = sample_dir.joinpath(f"iter_{step}")
                 this_sample_dir.mkdir(exist_ok=True)
@@ -202,7 +210,7 @@ def main(rank):
 
                 # save_grid(sample.cpu().numpy(), this_sample_dir.joinpath("sample.png"))
         if args.local_test:
-            print('for local test, break here')
+            print('for local test, break here, loss:', loss)
             break
 
 if __name__ == "__main__":

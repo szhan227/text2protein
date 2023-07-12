@@ -140,12 +140,13 @@ class Corrector(abc.ABC):
     self.n_steps = n_steps
 
   @abc.abstractmethod
-  def update_fn(self, x, t):
+  def update_fn(self, x, t, context=None):
     """One update of the corrector.
 
     Args:
       x: A PyTorch tensor representing the current state
       t: A PyTorch tensor representing the current time step.
+      context: A PyTorch tensor representing the context. For example, the textual embedding
 
     Returns:
       x: A PyTorch tensor of the next state.
@@ -158,8 +159,8 @@ class ReverseDiffusionPredictor(Predictor):
   def __init__(self, sde, score_fn, probability_flow=False):
     super().__init__(sde, score_fn, probability_flow)
 
-  def update_fn(self, x, t):
-    f, G = self.rsde.discretize(x, t)
+  def update_fn(self, x, t, context=None):
+    f, G = self.rsde.discretize(x, t, context=context)
     z = torch.randn_like(x)
     x_mean = x - f
     x = x_mean + G[:, None, None, None] * z
@@ -175,7 +176,7 @@ class LangevinCorrector(Corrector):
         and not isinstance(sde, sde_lib.subVPSDE):
       raise NotImplementedError(f"SDE class {sde.__class__.__name__} not yet supported.")
 
-  def update_fn(self, x, t):
+  def update_fn(self, x, t, context=None):
     sde = self.sde
     score_fn = self.score_fn
     n_steps = self.n_steps
@@ -187,7 +188,7 @@ class LangevinCorrector(Corrector):
       alpha = torch.ones_like(t)
 
     for i in range(n_steps):
-      grad = score_fn(x, t)
+      grad = score_fn(x, t, context=context)
       noise = torch.randn_like(x)
       grad_norm = torch.norm(grad.reshape(grad.shape[0], -1), dim=-1).mean()
       noise_norm = torch.norm(noise.reshape(noise.shape[0], -1), dim=-1).mean()
@@ -197,17 +198,17 @@ class LangevinCorrector(Corrector):
 
     return x, x_mean
 
-def shared_predictor_update_fn(x, t, sde, model, predictor, probability_flow):
+def shared_predictor_update_fn(x, t, context, sde, model, predictor, probability_flow):
   """A wrapper that configures and returns the update function of predictors."""
   score_fn = get_score_fn(sde, model, train=False)
   predictor_obj = predictor(sde, score_fn, probability_flow)
-  return predictor_obj.update_fn(x, t)
+  return predictor_obj.update_fn(x, t, context)
 
-def shared_corrector_update_fn(x, t, sde, model, corrector, snr, n_steps):
+def shared_corrector_update_fn(x, t, context, sde, model, corrector, snr, n_steps):
   """A wrapper tha configures and returns the update function of correctors."""
   score_fn = get_score_fn(sde, model, train=False)
   corrector_obj = corrector(sde, score_fn, snr, n_steps)
-  return corrector_obj.update_fn(x, t)
+  return corrector_obj.update_fn(x, t, context)
 
 def get_pc_sampler(sde, shape, predictor, corrector, snr,
                    n_steps=1, probability_flow=False,
@@ -241,7 +242,7 @@ def get_pc_sampler(sde, shape, predictor, corrector, snr,
                                           snr=snr,
                                           n_steps=n_steps)
 
-  def pc_sampler(model, condition=None):
+  def pc_sampler(model, condition=None, context=None):
     """ The PC sampler funciton.
 
     Args:
@@ -277,9 +278,9 @@ def get_pc_sampler(sde, shape, predictor, corrector, snr,
       for i in tqdm(range(sde.N), desc="Sampling"):
         t = timesteps[i]
         vec_t = torch.ones(shape[0], device=t.device) * t
-        x, x_mean = corrector_update_fn(x, vec_t, model=model)
+        x, x_mean = corrector_update_fn(x, vec_t, model=model, context=context)
         x = torch.where(conditional_mask, x, x_initial).float()
-        x, x_mean = predictor_update_fn(x, vec_t, model=model)
+        x, x_mean = predictor_update_fn(x, vec_t, model=model, context=context)
         x = torch.where(conditional_mask, x, x_initial).float()
 
       x_mean = torch.where(conditional_mask, x_mean, x_initial).float()
