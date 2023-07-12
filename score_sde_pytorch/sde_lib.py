@@ -146,7 +146,7 @@ class VPSDE(SDE):
     logps = -N / 2. * np.log(2 * np.pi) - torch.sum(z ** 2, dim=(1, 2, 3)) / 2.
     return logps
 
-  def discretize(self, x, t):
+  def discretize(self, x, t, context=None):
     """DDPM discretization."""
     timestep = (t * (self.N - 1) / self.T).long()
     beta = self.discrete_betas.to(x.device)[timestep]
@@ -234,7 +234,7 @@ class VESDE(SDE):
     N = np.prod(shape[1:])
     return -N / 2. * np.log(2 * np.pi * self.sigma_max ** 2) - torch.sum(z ** 2, dim=(1, 2, 3)) / (2 * self.sigma_max ** 2)
 
-  def discretize(self, x, t):
+  def discretize(self, x, t, context=None):
     """SMLD(NCSN) discretization."""
     timestep = (t * (self.N - 1) / self.T).long()
     sigma = self.discrete_sigmas.to(t.device)[timestep]
