@@ -72,9 +72,16 @@ class ProteinDataset(Dataset):
         # structures = self.parse_pdb(paths)
         print('Prepare pdb paths...')
         pdb_paths = []
+
+        tobreak = False
         for root, dirs, files in os.walk(dataset_path):
             for file in files:
                 pdb_paths.append(Path(os.path.join(root, file)))
+                if len(pdb_paths) >= 200:
+                    tobreak = True
+                    break
+            if tobreak:
+                break
 
         if local_test:
             print('local test: only use 200 pdbs.')
