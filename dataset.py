@@ -491,6 +491,7 @@ class PaddingCollate(object):
             # }
             data_padded = {}
             for k, v in data.items():
+                print('collate', k, max_length)
                 if k != 'caption':
                     v = self._pad_last(v, max_length, value=self._get_value(k))
                 data_padded[k] = v
