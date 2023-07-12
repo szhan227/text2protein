@@ -2,6 +2,7 @@ import os
 import json
 from pathlib import Path
 from tqdm import tqdm
+import torch
 
 def compare_pdb_file_and_caption():
     caption_path = './../caption-pdbs/abstract.json'
@@ -32,4 +33,13 @@ def compare_pdb_file_and_caption():
 
 
 if __name__ == '__main__':
-    compare_pdb_file_and_caption()
+    with open('./../caption-pdbs/abstract.json', 'r') as f:
+        ann_json = json.load(f)
+    ann_dict = dict()
+    for ann in ann_json:
+        ann_dict[ann['pdb_id']] = ann['caption']
+
+    for pbd_path in tqdm(os.listdir('./../processed_pdb_dicts')):
+        pdb_dict = torch.load(os.path.join('./../processed_pdb_dicts', pbd_path))
+        pdb_dict['caption'] = ann_dict[pbd_path.split('.')[0]]
+        torch.save(pdb_dict, os.path.join('./../processed_pdb_dicts', pbd_path))
