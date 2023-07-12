@@ -502,6 +502,7 @@ class PaddingCollate(object):
 class ProteinProcessedDataset(Dataset):
 
     def __init__(self, root_path):
+        super().__init__()
         self.root_path = root_path
         self.data_paths = os.listdir(root_path)
 
