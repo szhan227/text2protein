@@ -250,12 +250,7 @@ def get_pc_sampler(sde, shape, predictor, corrector, snr,
     Returns:
       Samples, number of function evaluations.
     """
-    print('here you call pc_sampler')
-    if context is None:
-      print('Context is None!!!!!!')
-    else:
-        print('Context shape: ', context.shape)
-        
+
     with torch.no_grad():
       # Initial sample
       x = sde.prior_sampling(shape).to(device)
