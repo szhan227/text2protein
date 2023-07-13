@@ -519,7 +519,25 @@ class ProteinProcessedDataset(Dataset):
     def __getitem__(self, idx):
         data_path = self.data_paths[idx]
         data = torch.load(os.path.join(self.root_path, data_path))
-        return data
+        return self.to_tensor(data)
+
+    def to_tensor(self, d):
+        feat_dtypes = {
+            "id": None,
+            "coords": torch.float32,
+            "coords_6d": torch.float32,
+            "aa": torch.long,
+            "aa_str": None,
+            "mask_pair": torch.bool,
+            "ss_indices": None,
+            "caption": None
+        }
+
+        for k,v in d.items():
+            if feat_dtypes[k] is not None:
+                d[k] = torch.tensor(v).to(dtype=feat_dtypes[k])
+
+        return d
 
 
 if __name__ == "__main__":
