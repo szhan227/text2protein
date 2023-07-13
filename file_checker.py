@@ -3,7 +3,11 @@ import json
 from pathlib import Path
 from tqdm import tqdm
 import torch
+from easydict import EasyDict
+import yaml
+from score_sde_pytorch.utils import save_checkpoint, restore_checkpoint, get_model, recursive_to
 
+from dataset import ProteinDataset, ProteinProcessedDataset, PaddingCollate
 def compare_pdb_file_and_caption():
     caption_path = './../caption-pdbs/abstract.json'
     pdb_path = './../raw-pdbs'
@@ -32,7 +36,7 @@ def compare_pdb_file_and_caption():
     print('have pdb but no caption:', len(difference))
 
 
-if __name__ == '__main__':
+def process_pdbs():
     with open('./../caption-pdbs/abstract.json', 'r') as f:
         ann_json = json.load(f)
     ann_dict = dict()
@@ -43,3 +47,37 @@ if __name__ == '__main__':
         pdb_dict = torch.load(os.path.join('./../processed-pdb-dicts', pbd_path))
         pdb_dict['caption'] = ann_dict[pbd_path.split('.')[0]]
         torch.save(pdb_dict, os.path.join('./../processed-pdb-dicts', pbd_path))
+
+
+if __name__ == '__main__':
+    config_path = './configs/test_config.yml'
+    with open(config_path, 'r') as f:
+        config = EasyDict(yaml.safe_load(f))
+
+    processed_dataset_path = './processed-pdb-dicts'
+    dataset = ProteinProcessedDataset(processed_dataset_path)
+
+    train_size = max(1, int(0.95 * len(dataset)))
+    test_size = len(dataset) - train_size
+    train_ds, test_ds = torch.utils.data.random_split(dataset, [train_size, test_size],
+                                                      generator=torch.Generator().manual_seed(config.seed))
+
+    train_sampler = torch.utils.data.RandomSampler(
+        train_ds,
+        replacement=True,
+        num_samples=config.training.n_iters * config.training.batch_size
+    )
+    train_dl = torch.utils.data.DataLoader(
+        train_ds,
+        sampler=train_sampler,
+        batch_size=config.training.batch_size,
+        collate_fn=PaddingCollate(config.data.max_res_num)
+    )
+
+    train_iter = iter(train_dl)
+
+    batch = next(train_iter)
+
+    captions = batch['caption']
+    print(type(captions))
+

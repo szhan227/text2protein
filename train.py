@@ -121,9 +121,13 @@ def main(rank):
     ema = ExponentialMovingAverage(score_model.parameters(), decay=config.model.ema_rate)
     optimizer = losses.get_optimizer(config, score_model.parameters())
     llm_name = 'lmsys/vicuna-7b-v1.3'
-    # tokenizer = LlamaTokenizer.from_pretrained(llm_name, use_fast=False).to(device)
-    # llm = LlamaForCausalLM.from_pretrained(llm_name).to(device)
-    tokenizer = llm = None
+    tokenizer = LlamaTokenizer.from_pretrained(llm_name, use_fast=False).to(device)
+    print('Loaded tokenizer to device:', device)
+    llm = LlamaForCausalLM.from_pretrained(llm_name)
+    print('Loaded llm to cpu')
+    llm = llm.to(device)
+    print('Loaded llm to device:', device)
+    # tokenizer = llm = None
 
     # if n_gpus > 1:
     #     score_model = torch.nn.parallel.DistributedDataParallel(
@@ -199,8 +203,7 @@ def main(rank):
             writer.add_scalar("eval_loss", eval_loss.item(), step)
 
         # Save a checkpoint periodically and generate samples if needed:
-        if True:
-        # if step != 0 and step % config.training.snapshot_freq == 0 or step == config.training.n_iters or args.local_test:
+        if step != 0 and step % config.training.snapshot_freq == 0 or step == config.training.n_iters:
             # Save the checkpoint.
             save_step = step // config.training.snapshot_freq
             # ckpt_path = checkpoint_dir.joinpath(f'checkpoint_{save_step}.pth')
@@ -212,7 +215,19 @@ def main(rank):
                 ema.store(score_model.parameters())
                 ema.copy_to(score_model.parameters())
                 condition = get_condition_from_batch(config, eval_batch)
-                context = torch.randn(config.training.batch_size, 1, 128)
+
+                raw_captions = [
+                    # 3mk9
+                    'RTA1-33/44-198 is a catalytically inactive, single-domain derivative of the ricin toxin A-chain (RTA) engineered to serve as a stable protein scaffold for presentation of native immunogenic epitopes (Olson et al., Protein Eng Des Sel 2004;17:391-397). To improve the stability and solubility of RTA1-33/44-198 further, we have undertaken the design challenge of introducing a disulfide (SS) bond. Nine pairs of residues were selected for placement of the SS-bond based on molecular dynamics simulation studies of the modeled single-domain chain. Disulfide formation at either of two positions (R48C/T77C or V49C/E99C) involving a specific surface loop (44-55) increased the protein melting temperature by ~5°C compared with RTA1-33/44-198 and by ~13°C compared with RTA. Prolonged stability studies of the R48C/T77C variant (> 60 days at 37°C, pH 7.4) confirmed a > 40% reduction in self-aggregation compared with RTA1-33/44-198 lacking the SS-bond. The R48C/T77C variant retained affinity for anti-RTA antibodies capable of neutralizing ricin toxin, including a monoclonal that recognizes a human B-cell epitope. Introduction of either R48C/T77C or V49C/E99C promoted crystallization of RTA1-33/44-198, and the X-ray structures of the variants were solved to 2.3 A or 2.1 A resolution, respectively. The structures confirm formation of an intramolecular SS-bond, and reveal a single-domain fold that is significantly reduced in volume compared with RTA. Loop 44 to 55 is partly disordered as predicted by simulations, and is positioned to form self-self interactions between symmetry-related molecules. We discuss the importance of RTA loop 34 to 55 as a nucleus for unfolding and aggregation, and draw conclusions for ongoing structure-based minimalist design of RTA-based immunogens.',
+                    # 5e7x
+                    'Talaromyces marneffei infection causes talaromycosis (previously known as penicilliosis), a very important opportunistic systematic mycosis in immunocompromised patients. Different virulence mechanisms in T. marneffei have been proposed and investigated. In the sera of patients with talaromycosis, Mp1 protein (Mp1p), a secretory galactomannoprotein antigen with two tandem ligand-binding domains (Mp1p-LBD1 and Mp1p-LBD2), was found to be abundant. Mp1p-LBD2 was reported to possess a hydrophobic cavity to bind copurified palmitic acid (PLM). It was hypothesized that capturing of lipids from human hosts by expressing a large quantity of Mp1p is a virulence mechanism of T. marneffei It was shown that expression of Mp1p enhanced the intracellular survival of T. marneffei by suppressing proinflammatory responses. Mechanistic study of Mp1p-LBD2 suggested that arachidonic acid (AA), a precursor of paracrine signaling molecules for regulation of inflammatory responses, is the major physiological target of Mp1p-LBD2. In this study, we use crystallographic and biochemical techniques to further demonstrate that Mp1p-LBD1, the previously unsolved first lipid binding domain of Mp1p, is also a strong AA-binding domain in Mp1p. These studies on Mp1p-LBD1 support the idea that the highly expressed Mp1p is an effective AA-capturing protein. Each Mp1p can bind up to 4 AA molecules. The crystal structure of Mp1p-LBD1-LBD2 has also been solved, showing that both LBDs are likely to function independently with a flexible linker between them. T. marneffei and potentially other pathogens highly expressing and secreting proteins similar to Mp1p can severely disturb host signaling cascades during proinflammatory responses by reducing the availabilities of important paracrine signaling molecules.'
+                ]
+                tokens = tokenizer(raw_captions, return_tensors="pt", add_special_tokens=False, max_length=512, padding='max_length')
+                tokens = tokens.input_ids
+                context = llm.model.embed_tokens(tokens).to(device)
+                # context = torch.randn(config.training.batch_size, 1, 128)
+
+
                 sample, n = sampling_fn(score_model, condition=condition, context=context)
                 ema.restore(score_model.parameters())
                 this_sample_dir = sample_dir.joinpath(f"iter_{step}")
