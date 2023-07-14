@@ -15,7 +15,7 @@ from model.modeling_llama import LlamaForCausalLM
 
 if __name__ == '__main__':
     device = 'cpu'
-    llm_name = 'lmsys/vicuna-7b-v1.3'
+    llm_name = 'anon8231489123/vicuna-13b-GPTQ-4bit-128g'
     tokenizer = LlamaTokenizer.from_pretrained(llm_name, use_fast=False)
     print('Loaded tokenizer')
     llm = LlamaForCausalLM.from_pretrained(llm_name)
