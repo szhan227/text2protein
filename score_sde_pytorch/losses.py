@@ -98,7 +98,7 @@ def get_sde_loss_fn(sde, train, eps=1e-5):
                              add_special_tokens=False,
                              max_length=512,
                              padding='max_length')
-    caption_toks = caption_toks.input_ids.to(coords_6d.device)
+    caption_toks = caption_toks.input_ids
     caption_emb = llm.model.embed_tokens(caption_toks).to(coords_6d.device)
     # caption_emb = torch.randn(coords_6d.shape[0], 1, 128)
 
