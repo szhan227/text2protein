@@ -170,6 +170,7 @@ def main(rank):
         raise NotImplementedError(f"SDE {config.training.sde} unknown.")
 
     # Build one-step training and evaluation functions
+
     optimize_fn = losses.optimization_manager(config)
     train_step_fn = losses.get_step_fn(sde, train=True, optimize_fn=optimize_fn)
     eval_step_fn = losses.get_step_fn(sde, train=False, optimize_fn=optimize_fn)
@@ -180,11 +181,15 @@ def main(rank):
                           config.data.max_res_num, config.data.max_res_num)
         sampling_fn = sampling.get_sampling_fn(config, sde, sampling_shape, sampling_eps)
 
+    all_losses = []
     for step in range(initial_step, config.training.n_iters + 1):
         batch = recursive_to(next(train_iter), device)
         # Execute one training step
         batch = random_mask_batch(batch, config)
         loss = train_step_fn(state, batch, condition=config.model.condition)
+        all_losses.append(loss.item())
+        avg_loss = sum(all_losses) / len(all_losses)
+        print(f"\rStep {step}: batch_loss: {loss.item()}, avg_loss: {avg_loss}", end='')
 
         if step % config.training.log_freq == 0:
             writer.add_scalar("training_loss", loss, step)
