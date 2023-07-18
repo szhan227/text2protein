@@ -18,9 +18,9 @@ if __name__ == '__main__':
     llm_name = 'NousResearch/GPT4-x-Vicuna-13b-4bit'
     tokenizer = LlamaTokenizer.from_pretrained(llm_name, use_fast=False)
     print('Loaded tokenizer')
-    llm = LlamaForCausalLM.from_pretrained(llm_name)
-    print('Loaded llm to cpu')
-    llm = llm.to(device)
+    # llm = LlamaForCausalLM.from_pretrained(llm_name)
+    # print('Loaded llm to cpu')
+    # llm = llm.to(device)
 
     raw_captions = [
         # 3mk9
@@ -29,13 +29,13 @@ if __name__ == '__main__':
         'Talaromyces marneffei infection causes talaromycosis (previously known as penicilliosis), a very important opportunistic systematic mycosis in immunocompromised patients. Different virulence mechanisms in T. marneffei have been proposed and investigated. In the sera of patients with talaromycosis, Mp1 protein (Mp1p), a secretory galactomannoprotein antigen with two tandem ligand-binding domains (Mp1p-LBD1 and Mp1p-LBD2), was found to be abundant. Mp1p-LBD2 was reported to possess a hydrophobic cavity to bind copurified palmitic acid (PLM). It was hypothesized that capturing of lipids from human hosts by expressing a large quantity of Mp1p is a virulence mechanism of T. marneffei It was shown that expression of Mp1p enhanced the intracellular survival of T. marneffei by suppressing proinflammatory responses. Mechanistic study of Mp1p-LBD2 suggested that arachidonic acid (AA), a precursor of paracrine signaling molecules for regulation of inflammatory responses, is the major physiological target of Mp1p-LBD2. In this study, we use crystallographic and biochemical techniques to further demonstrate that Mp1p-LBD1, the previously unsolved first lipid binding domain of Mp1p, is also a strong AA-binding domain in Mp1p. These studies on Mp1p-LBD1 support the idea that the highly expressed Mp1p is an effective AA-capturing protein. Each Mp1p can bind up to 4 AA molecules. The crystal structure of Mp1p-LBD1-LBD2 has also been solved, showing that both LBDs are likely to function independently with a flexible linker between them. T. marneffei and potentially other pathogens highly expressing and secreting proteins similar to Mp1p can severely disturb host signaling cascades during proinflammatory responses by reducing the availabilities of important paracrine signaling molecules.'
     ]
     tokens = tokenizer(raw_captions, return_tensors="pt", add_special_tokens=False, max_length=512,
-                       padding='max_length')
+                       padding=True, truncation=True)
     tokens = tokens.input_ids.to(device)
     if hasattr(tokens, 'shape'):
         print('tokens shape', tokens.shape)
-    context = llm.model.embed_tokens(tokens).to(device)
-    if hasattr(context, 'shape'):
-        print('context shape', context.shape)
+    # context = llm.model.embed_tokens(tokens).to(device)
+    # if hasattr(context, 'shape'):
+    #     print('context shape', context.shape)
     # batch = torch.load('./processed-pdb-dicts/3mk9.pt')
     # coords = batch['coords_6d']
     # print(coords.shape)
