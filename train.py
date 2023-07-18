@@ -16,6 +16,7 @@ from utils import random_mask_batch, get_condition_from_batch
 import shutil
 from model.modeling_llama import LlamaForCausalLM
 from transformers import LlamaTokenizer
+from tqdm import tqdm
 
 def main(rank):
     print('in main: show rank:', rank)
@@ -182,15 +183,16 @@ def main(rank):
         sampling_fn = sampling.get_sampling_fn(config, sde, sampling_shape, sampling_eps)
 
     all_losses = []
-    for step in range(initial_step, config.training.n_iters + 1):
+    progress_bar = tqdm(range(initial_step, config.training.n_iters + 1))
+    for step in progress_bar:
         batch = recursive_to(next(train_iter), device)
         # Execute one training step
         batch = random_mask_batch(batch, config)
         loss = train_step_fn(state, batch, condition=config.model.condition)
         all_losses.append(loss.item())
         avg_loss = sum(all_losses) / len(all_losses)
-        print(f"\rStep {step}: batch_loss: {loss.item()}, avg_loss: {avg_loss}", end='')
-
+        # print(f"\rStep {step}: batch_loss: {loss.item()}, avg_loss: {avg_loss}", end='')
+        progress_bar.set_description(f"Step {step}: batch_loss: {loss.item()}, avg_loss: {avg_loss}")
         if step % config.training.log_freq == 0:
             writer.add_scalar("training_loss", loss, step)
 
