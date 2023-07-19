@@ -5,6 +5,7 @@ import pickle as pkl
 from pyrosetta import *
 import rosetta_min.run as rosetta
 import argparse
+from tqdm import tqdm
 import time
 def main():
     parser = argparse.ArgumentParser()
@@ -60,7 +61,10 @@ def main():
 
     rosetta.init_pyrosetta()
 
-    for n in range(args.n_iter):
+    print('Start to run minimization')
+    minimization_progress = tqdm(range(args.n_iter), desc='Minimization progress')
+    for n in minimization_progress:
+    # for n in range(args.n_iter):
         outPath_run = outPath.joinpath(f"round_{n + 1}")
         if outPath_run.joinpath("final_structure.pdb").is_file():
             continue
@@ -88,7 +92,9 @@ def main():
 
     e_min = 9999
     best_run = 0
-    for i in range(args.n_iter):
+    lowest_score_progress = tqdm(range(args.n_iter), desc='Lowest score progress')
+    # for i in range(args.n_iter):
+    for i in lowest_score_progress:
         pose = pose_from_pdb(str(outPath.joinpath(f"round_{i + 1}", filename)))
         e = score_fn(pose)
         if e < e_min:
