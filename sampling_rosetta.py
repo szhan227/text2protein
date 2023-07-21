@@ -62,9 +62,11 @@ def main():
     rosetta.init_pyrosetta()
 
     print('Start to run minimization')
-    minimization_progress = tqdm(range(args.n_iter), desc='Minimization progress')
-    for n in minimization_progress:
-    # for n in range(args.n_iter):
+    # minimization_progress = tqdm(range(args.n_iter), desc='Minimization progress')
+    # for n in minimization_progress:
+    for n in range(args.n_iter):
+        print(f'Minimization {n+1}/{args.n_iter} ', end='')
+        start = time.time()
         outPath_run = outPath.joinpath(f"round_{n + 1}")
         if outPath_run.joinpath("final_structure.pdb").is_file():
             continue
@@ -80,6 +82,7 @@ def main():
             use_fastdesign=args.fastdesign,
             use_fastrelax=args.fastrelax,
         )
+        print(f'took {time.time()-start:.2f}s')
 
     # Create symlink
     if args.fastdesign:
