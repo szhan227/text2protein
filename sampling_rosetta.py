@@ -7,6 +7,7 @@ import rosetta_min.run as rosetta
 import argparse
 from tqdm import tqdm
 import time
+import yaml
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('data', type=str)
@@ -97,13 +98,18 @@ def main():
     best_run = 0
     lowest_score_progress = tqdm(range(args.n_iter), desc='Lowest score progress')
     # for i in range(args.n_iter):
+
+    scores = {}
     for i in lowest_score_progress:
         pose = pose_from_pdb(str(outPath.joinpath(f"round_{i + 1}", filename)))
         e = score_fn(pose)
+        scores[f"round_{i + 1}"] = e
+        yaml.dump({'round': i + 1, 'score': e}, open(outPath.joinpath(f"round_{i + 1}", "score.txt"), "w"))
         if e < e_min:
             best_run = i
             e_min = e
-
+    scores["best_run"] = best_run
+    yaml.dump(scores, open(outPath.joinpath("score.txt"), "w"))
     outPath.joinpath(f"best_run").symlink_to(outPath.joinpath(f"round_{best_run + 1}").resolve(),
                                              target_is_directory=True)
 
