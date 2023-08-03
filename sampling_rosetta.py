@@ -43,7 +43,7 @@ def main():
         print('rosetta sampling #: ', i)
 
         outPath = Path("sampling", "rosetta", args.tag,
-                          f"{Path(args.data).parent.stem}_index_{i}")
+                          f"{Path(args.data).parent.parent.stem}_index_{i}")
 
         msk = np.round(sample[-1])
         L = math.sqrt(len(msk[msk == 1]))
