@@ -93,7 +93,8 @@ def main():
         elif args.pdb is not None:
             condition = get_conditions_from_pdb(args.pdb, config, args.chain, args.mask_info, batch_size=args.batch_size)
         else:
-            condition = get_conditions_random(config, batch_size=args.batch_size)
+            # condition = get_conditions_random(config, batch_size=args.batch_size)
+            condition = {}
         sample, n = sampling_fn(state["model"], condition=condition, context=context)
         generated_samples.append(sample.cpu())
 
