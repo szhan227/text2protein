@@ -15,7 +15,7 @@ def main():
     parser.add_argument('--index', type=int, default=1) # 1-indexing
     parser.add_argument('--pdb', type=str, default=None)
     parser.add_argument('--mask_info', type=str, default="1:5,10:15")
-    parser.add_argument('--n_iter', type=int, default=10)
+    parser.add_argument('--n_iter', type=int, default=1)
     parser.add_argument('--dist_std', type=float, default=2)
     parser.add_argument('--angle_std', type=float, default=20)
     parser.add_argument('--fastdesign', type=bool, default=False)
