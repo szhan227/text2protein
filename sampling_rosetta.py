@@ -123,6 +123,8 @@ def main():
                 best_run = i
                 e_min = e
         scores["best_run"] = best_run
+        scores["best_score"] = e_min
+        scores["avg_score_per_res"] = e_min / L
         yaml.dump(scores, open(outPath.joinpath("score.txt"), "w"))
         outPath.joinpath(f"best_run").symlink_to(outPath.joinpath(f"round_{best_run + 1}").resolve(),
                                                  target_is_directory=True)

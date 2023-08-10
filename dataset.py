@@ -88,9 +88,9 @@ class ProteinDataset(Dataset):
             pdb_paths = pdb_paths[:200]
 
         # load pdb files into dataset
-        print('Start to parse pdbs...')
-        structures = self.parse_pdb(pdb_paths)
-        # self.save_pdb(pdb_paths)
+        print('Start to parse and savepdbs...')
+        # structures = self.parse_pdb(pdb_paths)
+        self.save_pdb(pdb_paths)
         # structures = []
         # for i, path in tqdm(enumerate(pdb_paths), desc='Parsing pdb:'):
         #     try:
@@ -100,8 +100,8 @@ class ProteinDataset(Dataset):
         # print()
 
         # Remove None from self.structures
-        self.structures = [self.to_tensor(i)
-                           for i in structures if i is not None]
+        # self.structures = [self.to_tensor(i)
+        #                    for i in structures if i is not None]
 
     def save_pdb(self, paths):
         logging.info(f"Processing dataset of length {len(paths)}...")
@@ -249,7 +249,8 @@ class ProteinDataset(Dataset):
                 "caption": self.ann_dict.get(path.stem, '')
             }
 
-            torch.save(to_save, './../processed-pdb-dicts/' + path.stem + '.pt')
+            to_save = self.to_tensor(to_save)
+            torch.save(to_save, './../processed-all-pdb-dicts/' + path.stem + '.pt')
         except:
             pass
 
