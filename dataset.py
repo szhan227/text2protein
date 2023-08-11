@@ -520,7 +520,8 @@ class ProteinProcessedDataset(Dataset):
     def __getitem__(self, idx):
         data_path = self.data_paths[idx]
         data = torch.load(os.path.join(self.root_path, data_path))
-        return self.to_tensor(data)
+        return data
+        # return self.to_tensor(data)
 
     def to_tensor(self, d):
         feat_dtypes = {

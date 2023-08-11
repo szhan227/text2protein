@@ -12,21 +12,76 @@ import math
 import numpy as np
 from transformers import LlamaTokenizer
 from model.modeling_llama import LlamaForCausalLM
-from Bio.PDB import PDBParser
+from Bio.PDB import PDBParser, Superimposer
 from Bio.PDB.Polypeptide import PPBuilder
 import matplotlib.pyplot as plt
 import nglview as nv
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import py3Dmol
+from itertools import combinations
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 
 def get_residue_coordinates(residue):
     return [atom.get_coord() for atom in residue.get_atoms()]
 
+
+def calculate_tm_score(structure1, structure2):
+    # superimposer = Superimposer()
+    # atoms1 = list(structure1.get_atoms())
+    # atoms2 = list(structure2.get_atoms())
+    # print('atoms1: ', atoms1)
+    # print('atoms2: ', atoms2)
+    # superimposer.set_atoms(atoms1, atoms2)
+    # return superimposer.rms
+    # residues1 = [residue.get_id() for chain in structure1 for residue in chain]
+    # residues2 = [residue.get_id() for chain in structure2 for residue in chain]
+    #
+    residues1 = [residue for chain in structure1.get_chains() for residue in chain]
+    print('residues1: ', residues1)
+    print('len res1: ', len(residues1))
+    # print('residues2: ', residues2)
+
+
+def calculate_sctm_score(models):
+    total_tm_score = 0.0
+    num_pairs = 0
+
+    for i, j in combinations(range(len(models)), 2):
+        print('i: ', i, 'j: ', j)
+        tm_score = calculate_tm_score(models[i], models[j])
+        print('tm_score: ', tm_score)
+        total_tm_score += tm_score
+        num_pairs += 1
+
+    sctm_score = total_tm_score / num_pairs
+    return sctm_score
+
 if __name__ == '__main__':
-    import yaml
-    yaml.dump({'a': 1, 'b': 2}, open('./test.txt', 'w'))
+    import pickle as pkl
+    pdbs = ['abc', 'def', 'ggg']
+    with open('./tts.txt', 'w') as f:
+        yaml.dump(pdbs, f)
+
+    # models = []
+    # pdb_paths = os.listdir('./pdbs')
+    #
+    # p2 = './pdbs/5e7x.pdb'
+    # p1 = './pdbs/3mk9.pdb'
+    # parser = PDBParser(QUIET=True)
+    # s1 = parser.get_structure('pdb_structure', p1)
+    # s2 = parser.get_structure('pdb_structure', p2)
+    # calculate_tm_score(s1, s2)
+    # for path in pdb_paths:
+    #     pdb_file = './pdbs/' + path
+    #     parser = PDBParser()
+    #     structure = parser.get_structure('pdb_structure', pdb_file)
+    #     models.append(structure)
+    #
+    # sctm_score = calculate_sctm_score(models)
+    # print('sctm_score: ', sctm_score)
+    # import yaml
+    # yaml.dump({'a': 1, 'b': 2}, open('./test.txt', 'w'))
     # pdb_file = './pdbs/1sfp.pdb'
     # parser = PDBParser()
     # structure = parser.get_structure('pdb_structure', pdb_file)

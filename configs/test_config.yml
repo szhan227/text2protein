@@ -20,7 +20,7 @@ sampling:
 data:
   dataset_path: "./../raw-pdbs"        # "./pdbs"  for local
   caption_path: "./../caption-pdbs/abstract.json"    #"./ann.json"  for local
-  processed_dataset_path: "./../processed-pdb-dicts"
+  processed_dataset_path: "./../processed-all-pdb-dicts"
   min_res_num: 40
   max_res_num: 256 # used to be 128
   num_channels: 5

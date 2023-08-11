@@ -72,6 +72,20 @@ def main(rank):
     train_ds, test_ds = torch.utils.data.random_split(dataset, [train_size, test_size],
                                                       generator=torch.Generator().manual_seed(config.seed))
 
+    train_ids = []
+    test_ids = []
+    for each in train_ds:
+        train_pdb_id = each['id']
+        train_ids.append(train_pdb_id)
+    for each in test_ds:
+        test_pdb_id = each['id']
+        test_ids.append(test_pdb_id)
+
+    with open('./train_ids.txt', 'w') as f:
+        yaml.dump(train_ids, f)
+    with open('./test_ids.txt', 'w') as f:
+        yaml.dump(test_ids, f)
+
     train_sampler = torch.utils.data.RandomSampler(
         train_ds,
         replacement=True,
