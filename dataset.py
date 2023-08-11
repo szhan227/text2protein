@@ -250,7 +250,7 @@ class ProteinDataset(Dataset):
             }
 
             to_save = self.to_tensor(to_save)
-            torch.save(to_save, './../processed-alla-pdb-dicts/' + path.stem + '.pt')
+            torch.save(to_save, './../processed-all-pdb-dicts/' + path.stem + '.pt')
         except:
             pass
 
