@@ -77,11 +77,11 @@ class ProteinDataset(Dataset):
         for root, dirs, files in os.walk(dataset_path):
             for file in files:
                 pdb_paths.append(Path(os.path.join(root, file)))
-                if len(pdb_paths) >= 200:
-                    tobreak = True
-                    break
-            if tobreak:
-                break
+                # if len(pdb_paths) >= 200:
+                #     tobreak = True
+                #     break
+            # if tobreak:
+            #     break
 
         if local_test:
             print('local test: only use 200 pdbs.')
@@ -250,7 +250,7 @@ class ProteinDataset(Dataset):
             }
 
             to_save = self.to_tensor(to_save)
-            torch.save(to_save, './../processed-all-pdb-dicts/' + path.stem + '.pt')
+            torch.save(to_save, './../processed-alla-pdb-dicts/' + path.stem + '.pt')
         except:
             pass
 
