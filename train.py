@@ -6,6 +6,7 @@ from score_sde_pytorch.models.ema import ExponentialMovingAverage
 import score_sde_pytorch.sde_lib as sde_lib
 import torch
 from torch.utils import tensorboard
+from torch.utils.data import DataLoader
 from score_sde_pytorch.utils import save_checkpoint, restore_checkpoint, get_model, recursive_to
 from dataset import ProteinDataset, ProteinProcessedDataset, PaddingCollate
 import pickle as pkl
@@ -93,7 +94,8 @@ def main(rank):
     )
     train_dl = torch.utils.data.DataLoader(
         train_ds,
-        sampler=train_sampler,
+        # sampler=train_sampler,
+        shuffle=True,
         batch_size=config.training.batch_size,
         collate_fn=PaddingCollate(config.data.max_res_num)
     )
@@ -196,69 +198,81 @@ def main(rank):
                           config.data.max_res_num, config.data.max_res_num)
         sampling_fn = sampling.get_sampling_fn(config, sde, sampling_shape, sampling_eps)
 
-    all_losses = []
-    progress_bar = tqdm(range(initial_step, config.training.n_iters + 1))
-    for step in progress_bar:
-        batch = recursive_to(next(train_iter), device)
-        # Execute one training step
-        batch = random_mask_batch(batch, config)
-        loss = train_step_fn(state, batch, condition=config.model.condition)
-        all_losses.append(loss.item())
-        avg_loss = sum(all_losses) / len(all_losses)
-        # print(f"\rStep {step}: batch_loss: {loss.item()}, avg_loss: {avg_loss}", end='')
-        progress_bar.set_description(f"Step {step}: batch_loss: {loss.item()}, avg_loss: {avg_loss}")
-        if step % config.training.log_freq == 0:
-            writer.add_scalar("training_loss", loss, step)
+    min_avg_loss = 1e10
+    batch_num = len(train_dl)
 
-        # Save a temporary checkpoint to resume training after pre-emption periodically
-        if step != 0 and step % config.training.snapshot_freq_for_preemption == 0:
-            save_checkpoint(checkpoint_meta_dir, state)
+    for epoch in range(config.training.epochs):
 
-        # Report the loss on an evaluation dataset periodically
-        if step % config.training.eval_freq == 0:
-            eval_batch = recursive_to(next(test_iter), device)
-            eval_batch = random_mask_batch(eval_batch, config)
-            eval_loss = eval_step_fn(state, eval_batch, condition=config.model.condition)
-            writer.add_scalar("eval_loss", eval_loss.item(), step)
+        all_losses = []
+        progress_bar = tqdm(train_dl)
 
-        # Save a checkpoint periodically and generate samples if needed:
-        if step != 0 and step % config.training.snapshot_freq == 0 or step == config.training.n_iters:
-            # Save the checkpoint.
-            save_step = step // config.training.snapshot_freq
-            # ckpt_path = checkpoint_dir.joinpath(f'checkpoint_{save_step}.pth')
-            # print('show ckpt_path', ckpt_path)
-            save_checkpoint(checkpoint_dir.joinpath(f'checkpoint_{save_step}.pth'), state)
+        for step, batch in enumerate(progress_bar):
+            batch = recursive_to(batch, device)
+            # Execute one training step
+            batch = random_mask_batch(batch, config)
+            loss = train_step_fn(state, batch, condition=config.model.condition)
+            all_losses.append(loss.item())
+            avg_loss = sum(all_losses) / len(all_losses)
+            # print(f"\rStep {step}: batch_loss: {loss.item()}, avg_loss: {avg_loss}", end='')
+            progress_bar.set_description(f"Epoch: {epoch}, Step: {step + 1}/{batch_num}, batch_loss: {loss.item()}, avg_loss: {avg_loss}")
+            if step % config.training.log_freq == 0:
+                writer.add_scalar("training_loss", loss, step)
+                writer.add_scalar("avg_training_loss", avg_loss, step)
 
-            # Generate and save samples
-            if config.training.snapshot_sampling:
-                ema.store(score_model.parameters())
-                ema.copy_to(score_model.parameters())
-                condition = get_condition_from_batch(config, eval_batch)
+            # Save a temporary checkpoint to resume training after pre-emption periodically
+            if step != 0 and step % config.training.snapshot_freq_for_preemption == 0:
+                save_checkpoint(checkpoint_meta_dir, state)
 
-                raw_captions = [
-                    # 3mk9
-                    'RTA1-33/44-198 is a catalytically inactive, single-domain derivative of the ricin toxin A-chain (RTA) engineered to serve as a stable protein scaffold for presentation of native immunogenic epitopes (Olson et al., Protein Eng Des Sel 2004;17:391-397). To improve the stability and solubility of RTA1-33/44-198 further, we have undertaken the design challenge of introducing a disulfide (SS) bond. Nine pairs of residues were selected for placement of the SS-bond based on molecular dynamics simulation studies of the modeled single-domain chain. Disulfide formation at either of two positions (R48C/T77C or V49C/E99C) involving a specific surface loop (44-55) increased the protein melting temperature by ~5°C compared with RTA1-33/44-198 and by ~13°C compared with RTA. Prolonged stability studies of the R48C/T77C variant (> 60 days at 37°C, pH 7.4) confirmed a > 40% reduction in self-aggregation compared with RTA1-33/44-198 lacking the SS-bond. The R48C/T77C variant retained affinity for anti-RTA antibodies capable of neutralizing ricin toxin, including a monoclonal that recognizes a human B-cell epitope. Introduction of either R48C/T77C or V49C/E99C promoted crystallization of RTA1-33/44-198, and the X-ray structures of the variants were solved to 2.3 A or 2.1 A resolution, respectively. The structures confirm formation of an intramolecular SS-bond, and reveal a single-domain fold that is significantly reduced in volume compared with RTA. Loop 44 to 55 is partly disordered as predicted by simulations, and is positioned to form self-self interactions between symmetry-related molecules. We discuss the importance of RTA loop 34 to 55 as a nucleus for unfolding and aggregation, and draw conclusions for ongoing structure-based minimalist design of RTA-based immunogens.',
-                    # 5e7x
-                    'Talaromyces marneffei infection causes talaromycosis (previously known as penicilliosis), a very important opportunistic systematic mycosis in immunocompromised patients. Different virulence mechanisms in T. marneffei have been proposed and investigated. In the sera of patients with talaromycosis, Mp1 protein (Mp1p), a secretory galactomannoprotein antigen with two tandem ligand-binding domains (Mp1p-LBD1 and Mp1p-LBD2), was found to be abundant. Mp1p-LBD2 was reported to possess a hydrophobic cavity to bind copurified palmitic acid (PLM). It was hypothesized that capturing of lipids from human hosts by expressing a large quantity of Mp1p is a virulence mechanism of T. marneffei It was shown that expression of Mp1p enhanced the intracellular survival of T. marneffei by suppressing proinflammatory responses. Mechanistic study of Mp1p-LBD2 suggested that arachidonic acid (AA), a precursor of paracrine signaling molecules for regulation of inflammatory responses, is the major physiological target of Mp1p-LBD2. In this study, we use crystallographic and biochemical techniques to further demonstrate that Mp1p-LBD1, the previously unsolved first lipid binding domain of Mp1p, is also a strong AA-binding domain in Mp1p. These studies on Mp1p-LBD1 support the idea that the highly expressed Mp1p is an effective AA-capturing protein. Each Mp1p can bind up to 4 AA molecules. The crystal structure of Mp1p-LBD1-LBD2 has also been solved, showing that both LBDs are likely to function independently with a flexible linker between them. T. marneffei and potentially other pathogens highly expressing and secreting proteins similar to Mp1p can severely disturb host signaling cascades during proinflammatory responses by reducing the availabilities of important paracrine signaling molecules.'
-                ]
-                tokens = tokenizer(raw_captions, return_tensors="pt", add_special_tokens=False, max_length=512, padding=True, truncation=True)
-                tokens = tokens.input_ids
-                context = llm.model.embed_tokens(tokens).to(device)
-                # context = torch.randn(config.training.batch_size, 1, 128)
+            # Report the loss on an evaluation dataset periodically
+            if step % config.training.eval_freq == 0:
+                eval_batch = recursive_to(next(test_iter), device)
+                eval_batch = random_mask_batch(eval_batch, config)
+                eval_loss = eval_step_fn(state, eval_batch, condition=config.model.condition)
+                writer.add_scalar("eval_loss", eval_loss.item(), step)
 
+            # Save a checkpoint periodically and generate samples if needed:
+        # if step != 0 and step % config.training.snapshot_freq == 0 or step == config.training.n_iters:
 
-                sample, n = sampling_fn(score_model, condition=condition, context=context)
-                ema.restore(score_model.parameters())
-                this_sample_dir = sample_dir.joinpath(f"iter_{step}")
-                this_sample_dir.mkdir(exist_ok=True)
+        # Save the checkpoint every epoch.
+        save_step = step // config.training.snapshot_freq
+        # ckpt_path = checkpoint_dir.joinpath(f'checkpoint_{save_step}.pth')
+        # print('show ckpt_path', ckpt_path)
+        save_checkpoint(checkpoint_dir.joinpath(f'checkpoint_epoch_{epoch}.pth'), state)
 
-                with open(str(this_sample_dir.joinpath("sample.pkl")), "wb") as fout:
-                    pkl.dump(sample.cpu(), fout)
+        # Generate and save samples
+        if config.training.snapshot_sampling:
+            ema.store(score_model.parameters())
+            ema.copy_to(score_model.parameters())
+            condition = get_condition_from_batch(config, eval_batch)
 
-                # save_grid(sample.cpu().numpy(), this_sample_dir.joinpath("sample.png"))
-        if args.local_test:
-            print('for local test, break here, loss:', loss)
-            break
+            raw_captions = [
+                # 3mk9
+                'RTA1-33/44-198 is a catalytically inactive, single-domain derivative of the ricin toxin A-chain (RTA) engineered to serve as a stable protein scaffold for presentation of native immunogenic epitopes (Olson et al., Protein Eng Des Sel 2004;17:391-397). To improve the stability and solubility of RTA1-33/44-198 further, we have undertaken the design challenge of introducing a disulfide (SS) bond. Nine pairs of residues were selected for placement of the SS-bond based on molecular dynamics simulation studies of the modeled single-domain chain. Disulfide formation at either of two positions (R48C/T77C or V49C/E99C) involving a specific surface loop (44-55) increased the protein melting temperature by ~5°C compared with RTA1-33/44-198 and by ~13°C compared with RTA. Prolonged stability studies of the R48C/T77C variant (> 60 days at 37°C, pH 7.4) confirmed a > 40% reduction in self-aggregation compared with RTA1-33/44-198 lacking the SS-bond. The R48C/T77C variant retained affinity for anti-RTA antibodies capable of neutralizing ricin toxin, including a monoclonal that recognizes a human B-cell epitope. Introduction of either R48C/T77C or V49C/E99C promoted crystallization of RTA1-33/44-198, and the X-ray structures of the variants were solved to 2.3 A or 2.1 A resolution, respectively. The structures confirm formation of an intramolecular SS-bond, and reveal a single-domain fold that is significantly reduced in volume compared with RTA. Loop 44 to 55 is partly disordered as predicted by simulations, and is positioned to form self-self interactions between symmetry-related molecules. We discuss the importance of RTA loop 34 to 55 as a nucleus for unfolding and aggregation, and draw conclusions for ongoing structure-based minimalist design of RTA-based immunogens.',
+                # 5e7x
+                'Talaromyces marneffei infection causes talaromycosis (previously known as penicilliosis), a very important opportunistic systematic mycosis in immunocompromised patients. Different virulence mechanisms in T. marneffei have been proposed and investigated. In the sera of patients with talaromycosis, Mp1 protein (Mp1p), a secretory galactomannoprotein antigen with two tandem ligand-binding domains (Mp1p-LBD1 and Mp1p-LBD2), was found to be abundant. Mp1p-LBD2 was reported to possess a hydrophobic cavity to bind copurified palmitic acid (PLM). It was hypothesized that capturing of lipids from human hosts by expressing a large quantity of Mp1p is a virulence mechanism of T. marneffei It was shown that expression of Mp1p enhanced the intracellular survival of T. marneffei by suppressing proinflammatory responses. Mechanistic study of Mp1p-LBD2 suggested that arachidonic acid (AA), a precursor of paracrine signaling molecules for regulation of inflammatory responses, is the major physiological target of Mp1p-LBD2. In this study, we use crystallographic and biochemical techniques to further demonstrate that Mp1p-LBD1, the previously unsolved first lipid binding domain of Mp1p, is also a strong AA-binding domain in Mp1p. These studies on Mp1p-LBD1 support the idea that the highly expressed Mp1p is an effective AA-capturing protein. Each Mp1p can bind up to 4 AA molecules. The crystal structure of Mp1p-LBD1-LBD2 has also been solved, showing that both LBDs are likely to function independently with a flexible linker between them. T. marneffei and potentially other pathogens highly expressing and secreting proteins similar to Mp1p can severely disturb host signaling cascades during proinflammatory responses by reducing the availabilities of important paracrine signaling molecules.'
+            ]
+            tokens = tokenizer(raw_captions, return_tensors="pt", add_special_tokens=False, max_length=512, padding=True, truncation=True)
+            tokens = tokens.input_ids
+            context = llm.model.embed_tokens(tokens).to(device)
+            # context = torch.randn(config.training.batch_size, 1, 128)
+
+            sample, n = sampling_fn(score_model, condition=condition, context=context)
+            ema.restore(score_model.parameters())
+            this_sample_dir = sample_dir.joinpath(f"iter_{step}")
+            this_sample_dir.mkdir(exist_ok=True)
+
+            with open(str(this_sample_dir.joinpath("sample.pkl")), "wb") as fout:
+                pkl.dump(sample.cpu(), fout)
+
+            # save_grid(sample.cpu().numpy(), this_sample_dir.joinpath("sample.png"))
+
+        if len(all_losses) > 0:
+            avg_loss = sum(all_losses) / len(all_losses)
+            if avg_loss < min_avg_loss:
+                min_avg_loss = avg_loss
+                print(f'Save best model at epoch {epoch}, avg_loss:', avg_loss)
+                save_checkpoint(checkpoint_dir.joinpath(f'best.pth'), state)
+
 
 if __name__ == "__main__":
     n_gpus = torch.cuda.device_count()

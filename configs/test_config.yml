@@ -7,6 +7,7 @@ training:
   eval_freq: 100
   snapshot_freq_for_preemption: 10_000
   snapshot_sampling: True
+  epochs: 1000
 
 sampling:
   n_steps_each: 1
