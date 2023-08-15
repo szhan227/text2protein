@@ -216,16 +216,16 @@ def main(rank):
             # print(f"\rStep {step}: batch_loss: {loss.item()}, avg_loss: {avg_loss}", end='')
             progress_bar.set_description(f"Epoch: {epoch}, Step: {step + 1}/{batch_num}, batch_loss: {loss.item()}, avg_loss: {avg_loss}")
             cur_step = epoch * batch_num + step
-            if step % config.training.log_freq == 0:
+            if cur_step % config.training.log_freq == 0:
                 writer.add_scalar("training_loss", loss, cur_step)
                 writer.add_scalar("avg_training_loss", avg_loss, cur_step)
 
             # Save a temporary checkpoint to resume training after pre-emption periodically
-            if step != 0 and step % config.training.snapshot_freq_for_preemption == 0:
+            if cur_step != 0 and cur_step % config.training.snapshot_freq_for_preemption == 0:
                 save_checkpoint(checkpoint_meta_dir, state)
 
             # Report the loss on an evaluation dataset periodically
-            if step % config.training.eval_freq == 0:
+            if cur_step % config.training.eval_freq == 0:
                 eval_batch = recursive_to(next(test_iter), device)
                 eval_batch = random_mask_batch(eval_batch, config)
                 eval_loss = eval_step_fn(state, eval_batch, condition=config.model.condition)
@@ -235,7 +235,7 @@ def main(rank):
         # if step != 0 and step % config.training.snapshot_freq == 0 or step == config.training.n_iters:
 
         # Save the checkpoint every epoch.
-        save_step = step // config.training.snapshot_freq
+        # save_step = step // config.training.snapshot_freq
         # ckpt_path = checkpoint_dir.joinpath(f'checkpoint_{save_step}.pth')
         # print('show ckpt_path', ckpt_path)
         save_checkpoint(checkpoint_dir.joinpath(f'checkpoint_epoch_{epoch}.pth'), state)
@@ -259,7 +259,7 @@ def main(rank):
 
             sample, n = sampling_fn(score_model, condition=condition, context=context)
             ema.restore(score_model.parameters())
-            this_sample_dir = sample_dir.joinpath(f"iter_{step}")
+            this_sample_dir = sample_dir.joinpath(f"epoch_{epoch}")
             this_sample_dir.mkdir(exist_ok=True)
 
             with open(str(this_sample_dir.joinpath("sample.pkl")), "wb") as fout:
