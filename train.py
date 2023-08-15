@@ -215,9 +215,10 @@ def main(rank):
             avg_loss = sum(all_losses) / len(all_losses)
             # print(f"\rStep {step}: batch_loss: {loss.item()}, avg_loss: {avg_loss}", end='')
             progress_bar.set_description(f"Epoch: {epoch}, Step: {step + 1}/{batch_num}, batch_loss: {loss.item()}, avg_loss: {avg_loss}")
+            cur_step = epoch * batch_num + step
             if step % config.training.log_freq == 0:
-                writer.add_scalar("training_loss", loss, step)
-                writer.add_scalar("avg_training_loss", avg_loss, step)
+                writer.add_scalar("training_loss", loss, cur_step)
+                writer.add_scalar("avg_training_loss", avg_loss, cur_step)
 
             # Save a temporary checkpoint to resume training after pre-emption periodically
             if step != 0 and step % config.training.snapshot_freq_for_preemption == 0:
@@ -228,7 +229,7 @@ def main(rank):
                 eval_batch = recursive_to(next(test_iter), device)
                 eval_batch = random_mask_batch(eval_batch, config)
                 eval_loss = eval_step_fn(state, eval_batch, condition=config.model.condition)
-                writer.add_scalar("eval_loss", eval_loss.item(), step)
+                writer.add_scalar("eval_loss", eval_loss.item(), cur_step)
 
             # Save a checkpoint periodically and generate samples if needed:
         # if step != 0 and step % config.training.snapshot_freq == 0 or step == config.training.n_iters:
