@@ -73,19 +73,7 @@ def main(rank):
     train_ds, test_ds = torch.utils.data.random_split(dataset, [train_size, test_size],
                                                       generator=torch.Generator().manual_seed(config.seed))
 
-    train_ids = []
-    test_ids = []
-    for each in train_ds:
-        train_pdb_id = each['id']
-        train_ids.append(train_pdb_id)
-    for each in test_ds:
-        test_pdb_id = each['id']
-        test_ids.append(test_pdb_id)
 
-    with open('./train_ids.txt', 'w') as f:
-        yaml.dump(train_ids, f)
-    with open('./test_ids.txt', 'w') as f:
-        yaml.dump(test_ids, f)
 
     train_sampler = torch.utils.data.RandomSampler(
         train_ds,
@@ -125,6 +113,20 @@ def main(rank):
         workdir.mkdir(exist_ok=True,parents=True)
         # Save config to workdir
         shutil.copy(args.config, workdir.joinpath("config.yml"))
+
+    train_ids = []
+    test_ids = []
+    for each in train_ds:
+        train_pdb_id = each['id']
+        train_ids.append(train_pdb_id)
+    for each in test_ds:
+        test_pdb_id = each['id']
+        test_ids.append(test_pdb_id)
+
+    with open(workdir.joinpath('train_ids.txt'), 'w') as f:
+        yaml.dump(train_ids, f)
+    with open(workdir.joinpath('test_ids.txt'), 'w') as f:
+        yaml.dump(test_ids, f)
 
     sample_dir = workdir.joinpath("samples")
     sample_dir.mkdir(exist_ok=True)
@@ -198,38 +200,39 @@ def main(rank):
                           config.data.max_res_num, config.data.max_res_num)
         sampling_fn = sampling.get_sampling_fn(config, sde, sampling_shape, sampling_eps)
 
-    min_avg_loss = 1e10
-    batch_num = len(train_dl)
+    min_avg_train_loss = 1e10
+    train_last_save_epoch = -1
+    train_batch_num = len(train_dl)
+
+    min_avg_eval_loss = 1e10
+    eval_last_save_epoch = -1
+    eval_batch_num = len(test_dl)
 
     for epoch in range(config.training.epochs):
 
-        all_losses = []
-        progress_bar = tqdm(train_dl)
+        all_train_losses = []
+        all_eval_losses = []
+        train_progress_bar = tqdm(train_dl)
+        eval_progress_bar = tqdm(test_dl)
+        update_train_best = False
+        update_eval_best = False
 
-        for step, batch in enumerate(progress_bar):
+        # ------------------------ Training -----------------------
+        for step, batch in enumerate(train_progress_bar):
             batch = recursive_to(batch, device)
             # Execute one training step
             batch = random_mask_batch(batch, config)
             loss = train_step_fn(state, batch, condition=config.model.condition)
-            all_losses.append(loss.item())
-            avg_loss = sum(all_losses) / len(all_losses)
+            all_train_losses.append(loss.item())
+            avg_loss = sum(all_train_losses) / len(all_train_losses)
             # print(f"\rStep {step}: batch_loss: {loss.item()}, avg_loss: {avg_loss}", end='')
-            progress_bar.set_description(f"Epoch: {epoch}, Step: {step + 1}/{batch_num}, batch_loss: {loss.item()}, avg_loss: {avg_loss}")
+            train_progress_bar.set_description(f"Epoch: {epoch}, Step: {step + 1}/{batch_num}, batch_loss: {loss.item()}, avg_loss: {avg_loss}")
             cur_step = epoch * batch_num + step
             if cur_step % config.training.log_freq == 0:
                 writer.add_scalar("training_loss", loss, cur_step)
-                writer.add_scalar("avg_training_loss", avg_loss, cur_step)
+                # writer.add_scalar("avg_training_loss", avg_loss, cur_step)
 
-            # Save a temporary checkpoint to resume training after pre-emption periodically
-            if cur_step != 0 and cur_step % config.training.snapshot_freq_for_preemption == 0:
-                save_checkpoint(checkpoint_meta_dir, state)
 
-            # Report the loss on an evaluation dataset periodically
-            if cur_step % config.training.eval_freq == 0:
-                eval_batch = recursive_to(next(test_iter), device)
-                eval_batch = random_mask_batch(eval_batch, config)
-                eval_loss = eval_step_fn(state, eval_batch, condition=config.model.condition)
-                writer.add_scalar("eval_loss", eval_loss.item(), cur_step)
 
             # Save a checkpoint periodically and generate samples if needed:
         # if step != 0 and step % config.training.snapshot_freq == 0 or step == config.training.n_iters:
@@ -238,7 +241,28 @@ def main(rank):
         # save_step = step // config.training.snapshot_freq
         # ckpt_path = checkpoint_dir.joinpath(f'checkpoint_{save_step}.pth')
         # print('show ckpt_path', ckpt_path)
+        # Save a temporary checkpoint to resume training after pre-emption periodically
+        # if cur_step != 0 and cur_step % config.training.snapshot_freq_for_preemption == 0:
+        # save latest checkpoint meta every epoch
+        save_checkpoint(checkpoint_meta_dir, state)
+
+        # save checkpoint every epoch
         save_checkpoint(checkpoint_dir.joinpath(f'checkpoint_epoch_{epoch}.pth'), state)
+
+        # -----------------------------Evaluation---------------------------------
+        # Report the loss on an evaluation dataset periodically
+        for eval_step, eval_batch in enumerate(eval_progress_bar):
+            eval_batch = recursive_to(eval_batch, device)
+            eval_batch = random_mask_batch(eval_batch, config)
+            eval_loss = eval_step_fn(state, eval_batch, condition=config.model.condition)
+            # writer.add_scalar("eval_loss", eval_loss.item(), cur_step)
+            all_eval_losses.append(eval_loss.item())
+        # if cur_step % config.training.eval_freq == 0:
+        #     eval_batch = recursive_to(next(test_iter), device)
+        #     eval_batch = random_mask_batch(eval_batch, config)
+        #     eval_loss = eval_step_fn(state, eval_batch, condition=config.model.condition)
+        #     writer.add_scalar("eval_loss", eval_loss.item(), cur_step)
+
 
         # Generate and save samples
         if config.training.snapshot_sampling:
@@ -267,12 +291,39 @@ def main(rank):
 
             # save_grid(sample.cpu().numpy(), this_sample_dir.joinpath("sample.png"))
 
-        if len(all_losses) > 0:
-            avg_loss = sum(all_losses) / len(all_losses)
-            if avg_loss < min_avg_loss:
-                min_avg_loss = avg_loss
-                print(f'Save best model at epoch {epoch}, avg_loss:', avg_loss)
-                save_checkpoint(checkpoint_dir.joinpath(f'best.pth'), state)
+        if len(all_train_losses) > 0:
+            avg_train_loss = sum(all_train_losses) / len(all_train_losses)
+
+            # write average training loss to tensorboard after each epoch
+            writer.add_scalar("avg_training_loss", avg_train_loss, epoch)
+
+            if avg_train_loss < min_avg_train_loss:
+                min_avg_train_loss = avg_train_loss
+                print(f'Train: Update best training model at epoch {epoch}, eval_avg_loss:', avg_train_loss)
+                save_checkpoint(checkpoint_dir.joinpath(f'best_train.pth'), state)
+                train_last_save_epoch = epoch
+                update_train_best = True
+            else:
+                print(f'Train: Not update best model at epoch {epoch}, cur_avg_loss:', avg_train_loss,
+                      'min_avg_loss:', min_avg_train_loss,
+                      'seen at epoch:', train_last_save_epoch)
+
+        if len(all_eval_losses) > 0:
+            avg_eval_loss = sum(all_eval_losses) / len(all_eval_losses)
+
+            writer.add_scalar("avg_eval_loss", avg_eval_loss, epoch)
+
+            if avg_eval_loss < min_avg_eval_loss:
+                min_avg_eval_loss = avg_eval_loss
+                print(f'Eval: Update best eval model at epoch {epoch}, eval_avg_loss:', avg_eval_loss)
+                save_checkpoint(checkpoint_dir.joinpath(f'best_eval.pth'), state)
+                eval_last_save_epoch = epoch
+                update_eval_best = True
+            else:
+                print(f'Eval: Not update best model at epoch {epoch}, cur_avg_loss:', avg_eval_loss,
+                        'min_avg_loss:', min_avg_eval_loss,
+                        'seen at epoch:', eval_last_save_epoch)
+
 
 
 if __name__ == "__main__":

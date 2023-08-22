@@ -59,9 +59,10 @@ def calculate_sctm_score(models):
 
 if __name__ == '__main__':
     import pickle as pkl
-    pdbs = ['abc', 'def', 'ggg']
-    with open('./tts.txt', 'w') as f:
-        yaml.dump(pdbs, f)
+    # pdbs = ['abc', 'def', 'ggg']
+    # with open('./tts.txt', 'w') as f:
+    #     yaml.dump(pdbs, f)
+    with open()
 
     # models = []
     # pdb_paths = os.listdir('./pdbs')
