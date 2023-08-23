@@ -116,10 +116,10 @@ def main(rank):
 
     train_ids = []
     test_ids = []
-    for each in train_ds:
+    for each in tqdm(train_ds, desc='save train ids'):
         train_pdb_id = each['id']
         train_ids.append(train_pdb_id)
-    for each in test_ds:
+    for each in tqdm(test_ds, desc='save test ids'):
         test_pdb_id = each['id']
         test_ids.append(test_pdb_id)
 
