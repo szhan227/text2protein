@@ -203,6 +203,7 @@ def main(rank):
     min_avg_train_loss = 1e10
     train_last_save_epoch = -1
     train_batch_num = len(train_dl)
+    test_batch_num = len(test_dl)
 
     min_avg_eval_loss = 1e10
     eval_last_save_epoch = -1
@@ -226,8 +227,8 @@ def main(rank):
             all_train_losses.append(loss.item())
             avg_loss = sum(all_train_losses) / len(all_train_losses)
             # print(f"\rStep {step}: batch_loss: {loss.item()}, avg_loss: {avg_loss}", end='')
-            train_progress_bar.set_description(f"Epoch: {epoch}, Step: {step + 1}/{batch_num}, batch_loss: {loss.item()}, avg_loss: {avg_loss}")
-            cur_step = epoch * batch_num + step
+            train_progress_bar.set_description(f"Epoch: {epoch}, Step: {step + 1}/{train_batch_num}, batch_loss: {loss.item()}, avg_loss: {avg_loss}")
+            cur_step = epoch * train_batch_num + step
             if cur_step % config.training.log_freq == 0:
                 writer.add_scalar("training_loss", loss, cur_step)
                 # writer.add_scalar("avg_training_loss", avg_loss, cur_step)
@@ -247,7 +248,7 @@ def main(rank):
         save_checkpoint(checkpoint_meta_dir, state)
 
         # save checkpoint every epoch
-        save_checkpoint(checkpoint_dir.joinpath(f'checkpoint_epoch_{epoch}.pth'), state)
+        # save_checkpoint(checkpoint_dir.joinpath(f'checkpoint_epoch_{epoch}.pth'), state)
 
         # -----------------------------Evaluation---------------------------------
         # Report the loss on an evaluation dataset periodically
