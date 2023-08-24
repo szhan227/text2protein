@@ -50,7 +50,7 @@ def process_pdbs():
 
 
 if __name__ == '__main__':
-    config_path = './configs/test_config.yml'
+    config_path = 'configs/test_config_large.yml'
     with open(config_path, 'r') as f:
         config = EasyDict(yaml.safe_load(f))
 

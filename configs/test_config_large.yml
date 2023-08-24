@@ -41,8 +41,8 @@ model:
   normalization: GroupNorm
   nonlinearity: swish
   nf: 256 # used to be 128
-  ch_mult: [1, 1, 2, 2, 2, 2] #used to be [1, 1, 2, 2, 2, 2]
-  num_res_blocks: 2 # used to be 2
+  ch_mult: [1, 1, 2, 2, 2, 4] #used to be [1, 1, 2, 2, 2, 2]
+  num_res_blocks: 3 # used to be 2
   attn_resolutions: [8, 16, 32] #[8, 16, 32]
   resamp_with_conv: True
   skip_rescale: True

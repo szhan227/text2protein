@@ -63,5 +63,5 @@ def train(config_path, save_path):
 
 
 if __name__ == '__main__':
-    train('./configs/test_config.yml', './checkpoints')
+    train('configs/test_config_large.yml', './checkpoints')
 

@@ -8,6 +8,7 @@ import score_sde_pytorch.losses as losses
 import pickle as pkl
 import argparse
 import yaml
+from torch.utils.data import Dataset, DataLoader
 from easydict import EasyDict
 from tqdm.auto import tqdm
 from utils import get_conditions_random, get_mask_all_lengths, get_conditions_from_pdb
@@ -16,7 +17,27 @@ from transformers import LlamaTokenizer
 from dataset import ProteinProcessedDataset
 import os
 
+
+class DescriptionDataset(torch.utils.data.Dataset):
+
+    def __init__(self, data):
+        self.data = data
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, idx):
+        return self.data[idx]
+
+
 def main():
+    captions = [['A', 'aaa'], ['B', 'bbbbb'], ['C', 'ccccccccc'], ['D', 'dfdfdf'], ['E', 'asdasdasd'], ['F', 'fdsfsdfdsf'], ['G', 'fffffffggggg']]
+    ds = DescriptionDataset(captions)
+    dl = DataLoader(ds, batch_size=3, shuffle=False)
+    for id, text in dl:
+        print(list(text))
+    return
+
     parser = argparse.ArgumentParser()
     parser.add_argument('config', type=str)
     parser.add_argument('checkpoint', type=str)
@@ -37,7 +58,7 @@ def main():
         config = EasyDict(yaml.safe_load(f))
 
     config.device = args.device
-    workdir = Path("sampling", "coords_6d", Path(args.config).stem, Path(args.checkpoint).stem, args.tag)
+    workdir = Path("sampling", "coords_6d", Path(args.config).stem, Path(args.checkpoint).parent.parent.stem, args.tag)
 
     # Initialize model.
     device = config.device
@@ -68,19 +89,31 @@ def main():
     # pdb_des_5e7x = 'Talaromyces marneffei infection causes talaromycosis (previously known as penicilliosis), a very important opportunistic systematic mycosis in immunocompromised patients. Different virulence mechanisms in T. marneffei have been proposed and investigated. In the sera of patients with talaromycosis, Mp1 protein (Mp1p), a secretory galactomannoprotein antigen with two tandem ligand-binding domains (Mp1p-LBD1 and Mp1p-LBD2), was found to be abundant. Mp1p-LBD2 was reported to possess a hydrophobic cavity to bind copurified palmitic acid (PLM). It was hypothesized that capturing of lipids from human hosts by expressing a large quantity of Mp1p is a virulence mechanism of T. marneffei It was shown that expression of Mp1p enhanced the intracellular survival of T. marneffei by suppressing proinflammatory responses. Mechanistic study of Mp1p-LBD2 suggested that arachidonic acid (AA), a precursor of paracrine signaling molecules for regulation of inflammatory responses, is the major physiological target of Mp1p-LBD2. In this study, we use crystallographic and biochemical techniques to further demonstrate that Mp1p-LBD1, the previously unsolved first lipid binding domain of Mp1p, is also a strong AA-binding domain in Mp1p. These studies on Mp1p-LBD1 support the idea that the highly expressed Mp1p is an effective AA-capturing protein. Each Mp1p can bind up to 4 AA molecules. The crystal structure of Mp1p-LBD1-LBD2 has also been solved, showing that both LBDs are likely to function independently with a flexible linker between them. T. marneffei and potentially other pathogens highly expressing and secreting proteins similar to Mp1p can severely disturb host signaling cascades during proinflammatory responses by reducing the availabilities of important paracrine signaling molecules.'
     # pdb_des_6wdp = 'Interleukin-12 (IL-12) and IL-23 are heterodimeric cytokines that are produced by antigen-presenting cells to regulate the activation and differentiation of lymphocytes, and they share IL-12Rβ1 as a receptor signaling subunit. We present a crystal structure of the quaternary IL-23 (IL-23p19/p40)/IL-23R/IL-12Rβ1 complex, together with cryoelectron microscopy (cryo-EM) maps of the complete IL-12 (IL-12p35/p40)/IL-12Rβ2/IL-12Rβ1 and IL-23 receptor (IL-23R) complexes, which reveal "non-canonical" topologies where IL-12Rβ1 directly engages the common p40 subunit. We targeted the shared IL-12Rβ1/p40 interface to design a panel of IL-12 partial agonists that preserved interferon gamma (IFNγ) induction by CD8 + T cells but impaired cytokine production from natural killer (NK) cells in vitro. These cell-biased properties were recapitulated in vivo, where IL-12 partial agonists elicited anti-tumor immunity to MC-38 murine adenocarcinoma absent the NK-cell-mediated toxicity seen with wild-type IL-12. Thus, the structural mechanism of receptor sharing used by IL-12 family cytokines provides a protein interface blueprint for tuning this cytokine axis for therapeutics.'
 
-    raw_captions = []
+    test_captions = []
 
+    train_paths = []
     test_paths = []
-    with open('./test_ids.txt', 'r') as f:
-        test_ids = yaml.load(f)
+
+    # ./ training / test_config / 2023_08_15__04_04_10 / checkpoints / best.pth
+    chk_path = Path(args.checkpoint).parent.parent # / training / test_config / 2023_08_15__04_04_10
+    with open(chk_path.joinpath('test_ids.txt', 'r')) as f:
+        test_ids = yaml.safe_load(f)
     for test_id in test_ids:
         test_paths.append(os.path.join('./../processed-all-pdb-dicts', test_id + '.pt'))
 
+    with open(chk_path.joinpath('train_ids.txt', 'r')) as f:
+        train_ids = yaml.safe_load(f)
+    for train_id in train_ids:
+        train_paths.append(os.path.join('./../processed-all-pdb-dicts', train_id + '.pt'))
+
     for test_path in test_paths:
         test_dict = torch.load(test_path)
-        raw_captions = test_dict['description']
+        stem = Path(test_path).stem
+        test_captions.append((stem, test_dict['description']))
 
 
+    description_dataset = DescriptionDataset(test_captions)
+    description_loader = DataLoader(description_dataset, batch_size=args.batch_size, shuffle=True)
 
     llm_name = 'lmsys/vicuna-7b-v1.3'
     tokenizer = LlamaTokenizer.from_pretrained(llm_name, use_fast=False)
@@ -88,16 +121,23 @@ def main():
     llm = LlamaForCausalLM.from_pretrained(llm_name)
     print('Loaded llm to cpu')
 
-    tokens = tokenizer(raw_captions, return_tensors="pt", add_special_tokens=False, max_length=512, padding=True,
-                       truncation=True)
-    tokens = tokens.input_ids
-    context = llm.model.embed_tokens(tokens).to(device)
-    # context = torch.zeros(1, 512, 4096).to(device)
+    count = 0
+    total = len(description_loader)
+    for pdb_id, raw_caption in description_loader:
+        count += 1
+        if len(pdb_id) != args.batch_size:
+            continue
 
-    generated_samples = []
-    print('start sampling')
-    for _ in range(args.n_iter):
-    # for _ in tqdm(range(args.n_iter)):
+        tokens = tokenizer(list(raw_caption), return_tensors="pt", add_special_tokens=False, max_length=512, padding=True,
+                           truncation=True)
+        tokens = tokens.input_ids
+        context = llm.model.embed_tokens(tokens).to(device)
+        # context = torch.zeros(1, 512, 4096).to(device)
+
+        generated_samples = []
+        print('start sampling')
+
+        # for _ in tqdm(range(args.n_iter)):
         if args.select_length:
             mask = get_mask_all_lengths(config,batch_size=args.batch_size)[args.length_index-1]
             condition = {"length": mask.to(config.device)}
@@ -109,13 +149,16 @@ def main():
         sample, n = sampling_fn(state["model"], condition=condition, context=context)
         generated_samples.append(sample.cpu())
 
-    generated_samples = torch.cat(generated_samples, 0)
-    print('show generated samples shape: ', generated_samples.shape)
+        generated_samples = torch.cat(generated_samples, 0)
+        print('show generated samples shape: ', generated_samples.shape)
 
-    workdir.mkdir(parents=True, exist_ok=True)
-    print('save samples to ', workdir.joinpath("samples.pkl"))
-    with open(workdir.joinpath("samples.pkl"), "wb") as f:
-        pkl.dump(generated_samples, f)
+        workdir.mkdir(parents=True, exist_ok=True)
+
+        # print(f'[{count} / {total}]save samples to ', workdir.joinpath(f"sampled_{pdb_id}.pkl"))
+        for i in range(args.batch_size):
+            with open(workdir.joinpath(f"sampled_{pdb_id[i]}.pkl"), "wb") as f:
+                pkl.dump(generated_samples[i].unsqueeze(0), f)
+        print(f'[{count} / {total}] save samples.')
 
 if __name__ == "__main__":
     main()

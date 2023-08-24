@@ -8,6 +8,7 @@ from model.attention import SpatialTransformer
 import json
 from pathlib import Path
 import os
+import sys
 import math
 import numpy as np
 from transformers import LlamaTokenizer
@@ -19,6 +20,8 @@ import nglview as nv
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import py3Dmol
 from itertools import combinations
+from score_sde_pytorch.utils import save_checkpoint, restore_checkpoint, get_model, recursive_to
+from torchsummary import summary
 os.environ['KMP_DUPLICATE_LIB_OK']='True'
 
 
@@ -62,7 +65,11 @@ if __name__ == '__main__':
     # pdbs = ['abc', 'def', 'ggg']
     # with open('./tts.txt', 'w') as f:
     #     yaml.dump(pdbs, f)
-    with open()
+
+    # path = Path('./training/test_config/2023_08_15__04_04_10/checkpoints/best.pth')
+    # print(path.parent.parent.joinpath('test_ids.txt'))
+    sample = torch.randn(1, 5, 256, 256)
+    print(torch.cat([sample, sample, sample], 0).shape)
 
     # models = []
     # pdb_paths = os.listdir('./pdbs')
@@ -169,7 +176,7 @@ if __name__ == '__main__':
     #     collate_fn=PaddingCollate(256)
     # )
 
-    # with open('./configs/test_config.yml', 'r') as f:
+    # with open('./configs/test_config_large.yml', 'r') as f:
     #     config = EasyDict(yaml.safe_load(f))
     # # # print(config)
     # #
