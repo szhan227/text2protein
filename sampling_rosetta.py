@@ -1,4 +1,6 @@
 import math
+import os
+
 import numpy as np
 from pathlib import Path
 import pickle as pkl
@@ -9,8 +11,11 @@ from tqdm import tqdm
 import time
 import yaml
 def main():
+
+    # print(os.listdir('./processed-pdb-dicts'))
+    # return
     parser = argparse.ArgumentParser()
-    parser.add_argument('data', type=str)
+    parser.add_argument('coords_path', type=str)
     parser.add_argument('--tag', type=str, default="")
     parser.add_argument('--index', type=int, default=1) # 1-indexing
     parser.add_argument('--pdb', type=str, default=None)
@@ -35,17 +40,33 @@ def main():
     # print(outPath)
     # return
 
-    with open(args.data, "rb") as f:
-        samples = pkl.load(f)
+    # ./sampling/coords_6d/test_config/best/test
+    coords_path = Path(args.coords_path)
+    sampled_6d_paths = os.listdir(coords_path)
+
+    for path in sampled_6d_paths:
+        pdb_id = path[8:-4]
+        # ./sampling/coords_6d/test_config/best/test/sampled_3mk9.pkl
+        coords_6d_path = coords_path.joinpath(path)
+
+        with open(coords_6d_path, 'rb') as f:
+            coords_6d = pkl.load(f)
+        if len(coords_6d.shape) == 4:
+            coords_6d = coords_6d[0]
+
+
+
+    # with open(args.data, "rb") as f:
+    #     samples = pkl.load(f)
 
     # sample = samples[args.index-1]
-    for i, sample in enumerate(samples):
-        print('rosetta sampling #: ', i)
+    # for i, sample in enumerate(samples):
+    #     print('rosetta sampling #: ', i)
 
-        outPath = Path("sampling", "rosetta", args.tag,
-                          f"{Path(args.data).parent.parent.stem}_index_{i}")
+        # ./sampling/rosetta/test_config
+        outPath = Path("sampling", "rosetta", coords_path.parent.parent.stem)
 
-        msk = np.round(sample[-1])
+        msk = np.round(coords_6d[-1])
         L = math.sqrt(len(msk[msk == 1]))
         if not (L).is_integer():
             raise ValueError("Terminated due to improper masking channel...")
@@ -66,7 +87,7 @@ def main():
 
         npz = {}
         for idx, name in enumerate(["dist", "omega", "theta", "phi"]):
-            npz[name] = np.clip(sample[idx][msk == 1].reshape(L, L), -1, 1)
+            npz[name] = np.clip(coords_6d[idx][msk == 1].reshape(L, L), -1, 1)
 
         # Inverse scaling
         npz["dist_abs"] = (npz["dist"] + 1) * 10
@@ -76,6 +97,7 @@ def main():
 
         rosetta.init_pyrosetta()
 
+        final_structure_name = f'rosetta_{pdb_id}.pdb'
         print('Start to run minimization')
         # minimization_progress = tqdm(range(args.n_iter), desc='Minimization progress')
         # for n in minimization_progress:
@@ -129,8 +151,8 @@ def main():
         outPath.joinpath(f"best_run").symlink_to(outPath.joinpath(f"round_{best_run + 1}").resolve(),
                                                  target_is_directory=True)
 
-        with open(outPath.joinpath(f"sample_{i}.pkl"), "wb") as f:
-            pkl.dump(sample, f)
+        with open(outPath.joinpath(f"sampled_{pdb_id}.pkl"), "wb") as f:
+            pkl.dump(coords_6d, f)
 
 if __name__ == "__main__":
     main()
