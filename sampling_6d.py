@@ -59,6 +59,7 @@ def main():
 
     config.device = args.device
     workdir = Path("sampling", "coords_6d", Path(args.config).stem, Path(args.checkpoint).parent.parent.stem, args.tag)
+    workdir.mkdir(parents=True, exist_ok=True)
 
     # Initialize model.
     device = config.device
@@ -96,12 +97,12 @@ def main():
 
     # ./ training / test_config / 2023_08_15__04_04_10 / checkpoints / best.pth
     chk_path = Path(args.checkpoint).parent.parent # / training / test_config / 2023_08_15__04_04_10
-    with open(chk_path.joinpath('test_ids.txt', 'r')) as f:
+    with open(chk_path.joinpath('test_ids.txt'), 'r') as f:
         test_ids = yaml.safe_load(f)
     for test_id in test_ids:
         test_paths.append(os.path.join('./../processed-all-pdb-dicts', test_id + '.pt'))
 
-    with open(chk_path.joinpath('train_ids.txt', 'r')) as f:
+    with open(chk_path.joinpath('train_ids.txt'), 'r') as f:
         train_ids = yaml.safe_load(f)
     for train_id in train_ids:
         train_paths.append(os.path.join('./../processed-all-pdb-dicts', train_id + '.pt'))
@@ -152,7 +153,6 @@ def main():
         generated_samples = torch.cat(generated_samples, 0)
         print('show generated samples shape: ', generated_samples.shape)
 
-        workdir.mkdir(parents=True, exist_ok=True)
 
         # print(f'[{count} / {total}]save samples to ', workdir.joinpath(f"sampled_{pdb_id}.pkl"))
         for i in range(args.batch_size):
