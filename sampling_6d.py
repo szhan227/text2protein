@@ -110,7 +110,9 @@ def main():
     for test_path in test_paths:
         test_dict = torch.load(test_path)
         stem = Path(test_path).stem
-        test_captions.append((stem, test_dict['description']))
+        if stem.endswith('.pt'):
+            stem = stem[:-3]
+        test_captions.append((stem, test_dict['caption']))
 
 
     description_dataset = DescriptionDataset(test_captions)
