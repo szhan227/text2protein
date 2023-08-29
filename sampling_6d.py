@@ -31,12 +31,12 @@ class DescriptionDataset(torch.utils.data.Dataset):
 
 
 def main():
-    captions = [['A', 'aaa'], ['B', 'bbbbb'], ['C', 'ccccccccc'], ['D', 'dfdfdf'], ['E', 'asdasdasd'], ['F', 'fdsfsdfdsf'], ['G', 'fffffffggggg']]
-    ds = DescriptionDataset(captions)
-    dl = DataLoader(ds, batch_size=3, shuffle=False)
-    for id, text in dl:
-        print(list(text))
-    return
+    # captions = [['A', 'aaa'], ['B', 'bbbbb'], ['C', 'ccccccccc'], ['D', 'dfdfdf'], ['E', 'asdasdasd'], ['F', 'fdsfsdfdsf'], ['G', 'fffffffggggg']]
+    # ds = DescriptionDataset(captions)
+    # dl = DataLoader(ds, batch_size=3, shuffle=False)
+    # for id, text in dl:
+    #     print(list(text))
+    # return
 
     parser = argparse.ArgumentParser()
     parser.add_argument('config', type=str)
