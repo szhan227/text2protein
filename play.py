@@ -68,8 +68,18 @@ if __name__ == '__main__':
 
     # path = Path('./training/test_config/2023_08_15__04_04_10/checkpoints/best.pth')
     # print(path.parent.parent.joinpath('test_ids.txt'))
-    sample = torch.randn(1, 5, 256, 256)
-    print(torch.cat([sample, sample, sample], 0).shape)
+    path = './processed-pdb-dicts/1sfp.pt'
+    d = torch.load(path)
+    print(d.keys())
+    for k, v in d.items():
+        if hasattr(v, 'shape'):
+            print(k, v.shape)
+        # elif hasattr(v, '__len__'):
+        #     print(k, len(v))
+        else:
+            print(k, v)
+
+    print(d['aa_str'])
 
     # models = []
     # pdb_paths = os.listdir('./pdbs')
