@@ -66,20 +66,20 @@ if __name__ == '__main__':
     # with open('./tts.txt', 'w') as f:
     #     yaml.dump(pdbs, f)
 
-    # path = Path('./training/test_config/2023_08_15__04_04_10/checkpoints/best.pth')
+    path = Path('./training/test_config/2023_08_15__04_04_10/checkpoints/best.pth')
     # print(path.parent.parent.joinpath('test_ids.txt'))
-    path = './processed-pdb-dicts/1sfp.pt'
-    d = torch.load(path)
-    print(d.keys())
-    for k, v in d.items():
-        if hasattr(v, 'shape'):
-            print(k, v.shape)
-        # elif hasattr(v, '__len__'):
-        #     print(k, len(v))
-        else:
-            print(k, v)
-
-    print(d['aa_str'])
+    # path = './processed-pdb-dicts/1sfp.pt'
+    # d = torch.load(path)
+    # print(d.keys())
+    # for k, v in d.items():
+    #     if hasattr(v, 'shape'):
+    #         print(k, v.shape)
+    #     # elif hasattr(v, '__len__'):
+    #     #     print(k, len(v))
+    #     else:
+    #         print(k, v)
+    #
+    # print(d['aa_str'])
 
     # models = []
     # pdb_paths = os.listdir('./pdbs')

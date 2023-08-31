@@ -44,8 +44,14 @@ def main():
     coords_path = Path(args.coords_path)
     sampled_6d_paths = os.listdir(coords_path)
 
-    for path in sampled_6d_paths:
-        pdb_id = path[8:-4]
+    total_to_design = len(sampled_6d_paths)
+    prefix_length = len('sampled_')
+    suffix_length = len('.pkl')
+
+    print(f'Start to run rosetta design on {total_to_design} sampled 6d coords.')
+    for i, path in enumerate(sampled_6d_paths):
+        start_time = time.time()
+        pdb_id = path[prefix_length:-suffix_length]
         # ./sampling/coords_6d/test_config/best/test/sampled_3mk9.pkl
         coords_6d_path = coords_path.joinpath(path)
 
@@ -54,14 +60,6 @@ def main():
         if len(coords_6d.shape) == 4:
             coords_6d = coords_6d[0]
 
-
-
-    # with open(args.data, "rb") as f:
-    #     samples = pkl.load(f)
-
-    # sample = samples[args.index-1]
-    # for i, sample in enumerate(samples):
-    #     print('rosetta sampling #: ', i)
 
         # ./sampling/rosetta/test_config
         outPath = Path("sampling", "rosetta", coords_path.parent.parent.stem)
@@ -98,11 +96,11 @@ def main():
         rosetta.init_pyrosetta()
 
         final_structure_name = f'rosetta_{pdb_id}.pdb'
-        print('Start to run minimization')
+        # print('Start to run minimization')
         # minimization_progress = tqdm(range(args.n_iter), desc='Minimization progress')
         # for n in minimization_progress:
         for n in range(args.n_iter):
-            print(f'Minimization {n+1}/{args.n_iter} ', end='')
+            # print(f'Minimization {n+1}/{args.n_iter} ', end='')
             start = time.time()
             outPath_run = outPath.joinpath(f"round_{n + 1}")
             if outPath_run.joinpath("final_structure.pdb").is_file():
@@ -119,7 +117,7 @@ def main():
                 use_fastdesign=args.fastdesign,
                 use_fastrelax=args.fastrelax,
             )
-            print(f'took {time.time()-start:.2f}s')
+            # print(f'took {time.time()-start:.2f}s')
 
         # Create symlink
         if args.fastdesign:
@@ -151,8 +149,13 @@ def main():
         outPath.joinpath(f"best_run").symlink_to(outPath.joinpath(f"round_{best_run + 1}").resolve(),
                                                  target_is_directory=True)
 
-        with open(outPath.joinpath(f"sampled_{pdb_id}.pkl"), "wb") as f:
-            pkl.dump(coords_6d, f)
+        # with open(outPath.joinpath(f"sampled_{pdb_id}.pkl"), "wb") as f:
+        #     pkl.dump(coords_6d, f)
+
+        end_time = time.time()
+        duration = end_time - start_time
+        duration = time.strftime("%H:%M:%S", time.gmtime(duration))
+        print(f'Finished [{i+1}/{total_to_design} Rosetta Design. sampled_{pdb_id} took {duration}.')
 
 if __name__ == "__main__":
     main()

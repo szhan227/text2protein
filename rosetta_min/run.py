@@ -154,7 +154,7 @@ def run_minimization(
     pose0.dump_pdb(str(outPath.joinpath("structure_before_design.pdb")))
 
     if use_fastdesign:
-        print('\tStart to run fast design...')
+        # print('\tStart to run fast design...')
         ############################
         ## sidechain minimization ##
         ############################
@@ -178,7 +178,7 @@ def run_minimization(
         pose0.dump_pdb(str(outPath.joinpath("structure_after_design.pdb")))
 
     if use_fastrelax:
-        print('\tStart to run fast relax...')
+        # print('\tStart to run fast relax...')
         ########################################################
         # full-atom refinement
         ########################################################
