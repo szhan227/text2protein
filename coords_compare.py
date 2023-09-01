@@ -38,6 +38,7 @@ def coord_compare():
         loss = F.mse_loss(gt_coords_6d, sampled_coords[:, :num_res, :num_res]).item()
         losses.append(f'{pdb_name}: {loss}')
         loss_sum += loss
+        progress_bar.set_description(f'{pdb_name}: {loss}')
 
     avg_loss = loss_sum / len(sampled_file_paths)
     losses.append(f'avg_loss: {avg_loss}')
