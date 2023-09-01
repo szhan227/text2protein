@@ -2,7 +2,7 @@ import torch
 from pathlib import Path
 import os
 from torch.nn import functional as F
-from dataset import PaddingCollate
+# from dataset import PaddingCollate
 import pickle as pkl
 import yaml
 from tqdm import tqdm
@@ -14,7 +14,7 @@ def coord_compare():
     ori_path = './../processed-all-pdb-dicts'
 
     max_length = 256
-    collate_fn = PaddingCollate(max_length)
+    # collate_fn = PaddingCollate(max_length)
 
     sampled_file_paths = os.listdir(sampled_dir)
     prefix_len, suffix_len = len('sampled_'), len('.pkl')
