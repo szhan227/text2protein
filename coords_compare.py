@@ -5,6 +5,7 @@ from torch.nn import functional as F
 from dataset import PaddingCollate
 import pickle as pkl
 import yaml
+from tqdm import tqdm
 
 
 def coord_compare():
@@ -20,7 +21,9 @@ def coord_compare():
 
     losses = list()
     loss_sum = 0.0
-    for sampled_file_name in sampled_file_paths:
+
+    progress_bar = tqdm(sampled_file_paths)
+    for sampled_file_name in progress_bar:
         pdb_name = sampled_file_name[prefix_len:-suffix_len]
         gt_file_path = os.path.join(ori_path, pdb_name + '.pt')
         gt_dict = torch.load(gt_file_path)
