@@ -32,6 +32,8 @@ def coord_compare():
 
         with open(os.path.join(sampled_dir, sampled_file_name), 'rb') as f:
             sampled_coords = pkl.load(f)
+        if len(sampled_coords.shape) == 4:
+            sampled_coords = sampled_coords[0]
 
         loss = F.mse_loss(gt_coords_6d, sampled_coords[:, :num_res, :num_res]).item()
         losses.append(f'{pdb_name}: {loss}')
