@@ -41,7 +41,7 @@ def coord_compare():
     losses.append(f'avg_loss: {avg_loss}')
 
     dump_path = Path(sampled_dir).parent
-    with open(dump_path.joinpath('losses.txt'), 'w') as ff:
+    with open(dump_path.joinpath('coords_6d_losses.txt'), 'w') as ff:
         yaml.dump(losses, ff)
 
 
