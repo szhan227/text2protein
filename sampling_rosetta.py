@@ -40,7 +40,7 @@ def main():
     # print(outPath)
     # return
 
-    # ./sampling/coords_6d/test_config/best/test
+    # ./sampling/coords_6d/test_config/2023_08_15__04_04_10/test
     coords_path = Path(args.coords_path)
     sampled_6d_paths = os.listdir(coords_path)
 
@@ -52,7 +52,7 @@ def main():
     for i, path in enumerate(sampled_6d_paths):
         start_time = time.time()
         pdb_id = path[prefix_length:-suffix_length]
-        # ./sampling/coords_6d/test_config/best/test/sampled_3mk9.pkl
+        # ./sampling/coords_6d/test_config/2023_08_15__04_04_10/test
         coords_6d_path = coords_path.joinpath(path)
 
         with open(coords_6d_path, 'rb') as f:
@@ -62,7 +62,7 @@ def main():
 
 
         # ./sampling/rosetta/test_config
-        outPath = Path("sampling", "rosetta", coords_path.parent.parent.stem)
+        outPath = Path("sampling", "rosetta", coords_path.parent.parent.stem, str(pdb_id))
 
         msk = np.round(coords_6d[-1])
         L = math.sqrt(len(msk[msk == 1]))
