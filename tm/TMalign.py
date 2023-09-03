@@ -71,13 +71,17 @@ if __name__ == '__main__':
 
     train_pdb_paths = []
     with open(train_ids_path, 'r') as f_train:
-        train_ids = yaml.safe_load(f_train)
+        # train_ids = yaml.safe_load(f_train)
+        for train_id in tqdm(f_train, desc='Loading train pdb paths'):
+            train_id = train_id.strip()
+            mid_name = train_id[1:3]
+            train_pdb_paths.append(Path(raw_pdb_dir.joinpath(mid_name, f'{train_id}.pdb')))
 
-    for train_id in tqdm(train_ids, desc='Loading train pdb paths'):
-        mid_name = train_id[1:3] # two character middle name
-        train_pdb_path = raw_pdb_dir.joinpath(mid_name, f'{train_id}.pdb')
-        if train_pdb_path.exists():
-            train_pdb_paths.append(train_pdb_path)
+    # for train_id in tqdm(train_ids, desc='Loading train pdb paths'):
+    #     mid_name = train_id[1:3] # two character middle name
+    #     train_pdb_path = raw_pdb_dir.joinpath(mid_name, f'{train_id}.pdb')
+    #     if train_pdb_path.exists():
+    #         train_pdb_paths.append(train_pdb_path)
 
     test_pdb_paths = []
     rosetta_sampling_paths = []
