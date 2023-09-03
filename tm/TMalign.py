@@ -5,6 +5,7 @@ import numpy as np
 import os
 from pathlib import Path
 import yaml
+from tqdm import tqdm
 
 
 def get_residue_data(chain):
@@ -72,7 +73,7 @@ if __name__ == '__main__':
     with open(train_ids_path, 'r') as f_train:
         train_ids = yaml.safe_load(f_train)
 
-    for train_id in train_ids:
+    for train_id in tqdm(train_ids, desc='Loading train pdb paths'):
         mid_name = train_id[1:3] # two character middle name
         train_pdb_path = raw_pdb_dir.joinpath(mid_name, f'{train_id}.pdb')
         if train_pdb_path.exists():
@@ -83,7 +84,7 @@ if __name__ == '__main__':
     with open(test_ids_path, 'r') as f_test:
         test_ids = yaml.safe_load(f_test)
 
-    for test_id in test_ids:
+    for test_id in tqdm(test_ids, desc='Loading test pdb paths'):
         mid_name = test_id[1:3] # two character middle name
         test_pdb_paths.append(Path(raw_pdb_dir.joinpath(mid_name, f'{test_id}.pdb')))
 
@@ -94,10 +95,15 @@ if __name__ == '__main__':
 
 
     scores = []
-    for target_path in rosetta_sampling_paths:
-        for reference_path in train_pdb_paths:
+    num_sampling = len(rosetta_sampling_paths)
+    num_training = len(train_pdb_paths)
+    for i, target_path in enumerate(rosetta_sampling_paths):
+        for j, reference_path in enumerate(train_pdb_paths):
             # reference_path = os.path.join(raw_pdb_dir, reference_path[:-3] + '.pdb')
             scores.append(tm_score(target_path, reference_path))
+            print(f'Calculating TM score: {i + 1}/{num_sampling}, {j + 1}/{num_training}')
+    print()
+
 
     tm_max = max(scores)
     tm_min = min(scores)
