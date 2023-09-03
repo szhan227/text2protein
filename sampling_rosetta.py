@@ -49,7 +49,7 @@ def main():
     suffix_length = len('.pkl')
 
     print(f'Start to run rosetta design on {total_to_design} sampled 6d coords.')
-    for i, path in enumerate(sampled_6d_paths):
+    for ith, path in enumerate(sampled_6d_paths):
         start_time = time.time()
         pdb_id = path[prefix_length:-suffix_length]
         # ./sampling/coords_6d/test_config/2023_08_15__04_04_10/test
@@ -155,7 +155,7 @@ def main():
         end_time = time.time()
         duration = end_time - start_time
         duration = time.strftime("%H:%M:%S", time.gmtime(duration))
-        print(f'Finished [{i+1}/{total_to_design} Rosetta Design. sampled_{pdb_id} took {duration}.')
+        print(f'Finished [{ith+1}/{total_to_design} Rosetta Design. sampled_{pdb_id} took {duration}.')
 
 if __name__ == "__main__":
     main()
