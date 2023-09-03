@@ -74,7 +74,7 @@ if __name__ == '__main__':
         # train_ids = yaml.safe_load(f_train)
         for train_id in tqdm(f_train, desc='Loading train pdb paths'):
             train_id = train_id.strip()
-            mid_name = train_id[1:3]
+            mid_name = train_id[3:5]
             train_pdb_path = raw_pdb_dir.joinpath(mid_name, f'{train_id}.pdb')
             print('train path: ', f'[{train_id}]')
             train_pdb_paths.append(train_pdb_path)
