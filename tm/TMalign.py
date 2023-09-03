@@ -75,7 +75,9 @@ if __name__ == '__main__':
         for train_id in tqdm(f_train, desc='Loading train pdb paths'):
             train_id = train_id.strip()
             mid_name = train_id[1:3]
-            train_pdb_paths.append(Path(raw_pdb_dir.joinpath(mid_name, f'{train_id}.pdb')))
+            train_pdb_path = raw_pdb_dir.joinpath(mid_name, f'{train_id}.pdb')
+            print('train path: ', train_pdb_path)
+            train_pdb_paths.append(train_pdb_path)
 
     # for train_id in tqdm(train_ids, desc='Loading train pdb paths'):
     #     mid_name = train_id[1:3] # two character middle name
