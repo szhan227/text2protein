@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import yaml
 
+
 def get_residue_data(chain):
     """Extract residue coordinates and sequence from PDB chain.
 
@@ -59,16 +60,43 @@ def max_min_avg_tm_score(target_list, reference_list):
 
 
 if __name__ == '__main__':
+
+    training_dir = Path('./../training/test_config/2023_08_15__04_04_10')
+    rosetta_sampling_dir = Path('./../sampling/rosetta/test_config')
+    train_ids_path = training_dir.joinpath('train_ids.txt')
+    test_ids_path = training_dir.joinpath('test_ids.txt')
+
     raw_pdb_dir = Path('./../../raw-pdbs')
-    # train_pdb_dir = Path('./../../processed-all-pdb-pdbs')
-    train_pdb_dir = Path('./../pdbs')
-    train_stems = os.listdir(train_pdb_dir)
-    sampling_paths = []
+
+    train_pdb_paths = []
+    with open(train_ids_path, 'r') as f_train:
+        train_ids = yaml.safe_load(f_train)
+
+    for train_id in train_ids:
+        mid_name = train_id[1:3] # two character middle name
+        train_pdb_path = raw_pdb_dir.joinpath(mid_name, f'{train_id}.pdb')
+        if train_pdb_path.exists():
+            train_pdb_paths.append(train_pdb_path)
+
+    test_pdb_paths = []
+    rosetta_sampling_paths = []
+    with open(test_ids_path, 'r') as f_test:
+        test_ids = yaml.safe_load(f_test)
+
+    for test_id in test_ids:
+        mid_name = test_id[1:3] # two character middle name
+        test_pdb_paths.append(Path(raw_pdb_dir.joinpath(mid_name, f'{test_id}.pdb')))
+
+        # ./text2protein/sampling/rosetta/test_config/2era/round_1/final_structure.pdb
+        sampling_path = rosetta_sampling_dir.joinpath(test_id, 'round_1', 'final_structure.pdb')
+        if sampling_path.exists():
+            rosetta_sampling_paths.append(sampling_path)
+
 
     scores = []
-    for target_path in sampling_paths:
-        for reference_path in train_stems:
-            reference_path = os.path.join(raw_pdb_dir, reference_path[:-3] + '.pdb')
+    for target_path in rosetta_sampling_paths:
+        for reference_path in train_pdb_paths:
+            # reference_path = os.path.join(raw_pdb_dir, reference_path[:-3] + '.pdb')
             scores.append(tm_score(target_path, reference_path))
 
     tm_max = max(scores)
@@ -78,8 +106,8 @@ if __name__ == '__main__':
     to_save = dict(tm_max=tm_max,
                    tm_min=tm_min,
                    tm_avg=tm_avg,
-                   reference_count=len(train_stems),
-                   target_count=len(sampling_paths)
+                   reference_count=len(train_pdb_paths),
+                   target_count=len(rosetta_sampling_paths)
                    )
 
     with open('tm-scores.yaml', 'w') as f:
