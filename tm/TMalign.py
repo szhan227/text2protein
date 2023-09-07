@@ -106,8 +106,12 @@ if __name__ == '__main__':
     for i, target_path in enumerate(rosetta_sampling_paths):
         for j, reference_path in enumerate(train_pdb_paths):
             # reference_path = os.path.join(raw_pdb_dir, reference_path[:-3] + '.pdb')
-            scores.append(tm_score(target_path, reference_path))
-            print(f'Calculating TM score: {i + 1}/{num_sampling}, {j + 1}/{num_training}')
+            try:
+                score = tm_score(target_path, reference_path)
+                scores.append(score)
+                print(f'\rCalculating TM score: {i + 1}/{num_sampling}, {j + 1}/{num_training}', end='')
+            except Exception:
+                continue
     print()
 
 
