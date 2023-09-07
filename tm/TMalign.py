@@ -76,7 +76,6 @@ if __name__ == '__main__':
             train_id = train_id.strip()
             mid_name = train_id[3:5]
             train_pdb_path = raw_pdb_dir.joinpath(mid_name, f'{train_id[2:]}.pdb')
-            print('train path: ', f'[{train_id}]')
             train_pdb_paths.append(train_pdb_path)
 
     # for train_id in tqdm(train_ids, desc='Loading train pdb paths'):
@@ -88,16 +87,21 @@ if __name__ == '__main__':
     test_pdb_paths = []
     rosetta_sampling_paths = []
     with open(test_ids_path, 'r') as f_test:
-        test_ids = yaml.safe_load(f_test)
+        # test_ids = yaml.safe_load(f_test)
+        for test_id in tqdm(f_test, desc='Loading test pdb paths'):
+            test_id = test_id.strip()
+            mid_name = test_id[3:5]
+            test_pdb_path = raw_pdb_dir.joinpath(mid_name, f'{test_id[2:]}.pdb')
+            test_pdb_paths.append(test_pdb_path)
 
-    for test_id in tqdm(test_ids, desc='Loading test pdb paths'):
-        mid_name = test_id[1:3] # two character middle name
-        test_pdb_paths.append(Path(raw_pdb_dir.joinpath(mid_name, f'{test_id}.pdb')))
+    # for test_id in tqdm(test_ids, desc='Loading test pdb paths'):
+    #     mid_name = test_id[1:3] # two character middle name
+    #     test_pdb_paths.append(Path(raw_pdb_dir.joinpath(mid_name, f'{test_id}.pdb')))
 
         # ./text2protein/sampling/rosetta/test_config/2era/round_1/final_structure.pdb
-        sampling_path = rosetta_sampling_dir.joinpath(test_id, 'round_1', 'final_structure.pdb')
-        if sampling_path.exists():
-            rosetta_sampling_paths.append(sampling_path)
+            sampling_path = rosetta_sampling_dir.joinpath(test_id[2:], 'round_1', 'final_structure.pdb')
+            if sampling_path.exists():
+                rosetta_sampling_paths.append(sampling_path)
 
 
     scores = []
