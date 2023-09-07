@@ -103,7 +103,7 @@ if __name__ == '__main__':
             if sampling_path.exists():
                 rosetta_sampling_paths.append(sampling_path)
 
-
+    print('Start to calculate TM score...')
     scores = []
     num_sampling = len(rosetta_sampling_paths)
     num_training = len(train_pdb_paths)
