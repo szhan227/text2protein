@@ -3,6 +3,7 @@ from tmtools import tm_align
 from Bio.PDB.Polypeptide import protein_letters_3to1
 import numpy as np
 import os
+import json
 from pathlib import Path
 import yaml
 from tqdm import tqdm
@@ -118,7 +119,6 @@ if __name__ == '__main__':
                 continue
     print()
 
-
     tm_max = max(scores)
     tm_min = min(scores)
     tm_avg = sum(scores) / max(1, len(scores))
@@ -131,4 +131,5 @@ if __name__ == '__main__':
                    )
 
     with open('tm-scores.yaml', 'w') as f:
-        yaml.dump(to_save, f)
+        json.dump(to_save, f, indent=4)
+
