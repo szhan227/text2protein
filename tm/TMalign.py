@@ -115,8 +115,8 @@ if __name__ == '__main__':
                 score = tm_score(target_path, reference_path)
                 scores.append(score)
                 print(f'\rCalculating TM score: {i + 1}/{num_sampling}, {j + 1}/{num_training}', end='')
-            except Exception:
-                continue
+            except Exception as e:
+                print('catch exception in tm_score, but ignore it.')
     print()
 
     tm_max = max(scores)
