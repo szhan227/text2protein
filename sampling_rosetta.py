@@ -64,7 +64,7 @@ def main():
         # ./sampling/rosetta/test_config
         outPath = Path("sampling", "rosetta", coords_path.parent.parent.stem, str(pdb_id))
         if not args.fastdesign:
-            outPath = Path("sampling", "rosetta", coords_path.parent.parent.stem, "minmover", str(pdb_id))
+            outPath = Path("sampling", "rosetta-minmover-only", coords_path.parent.parent.stem, str(pdb_id))
 
         msk = np.round(coords_6d[-1])
         L = math.sqrt(len(msk[msk == 1]))
