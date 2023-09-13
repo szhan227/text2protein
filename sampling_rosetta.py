@@ -4,8 +4,8 @@ import os
 import numpy as np
 from pathlib import Path
 import pickle as pkl
-from pyrosetta import *
-import rosetta_min.run as rosetta
+# from pyrosetta import *
+# import rosetta_min.run as rosetta
 import argparse
 from tqdm import tqdm
 import time
@@ -63,6 +63,8 @@ def main():
 
         # ./sampling/rosetta/test_config
         outPath = Path("sampling", "rosetta", coords_path.parent.parent.stem, str(pdb_id))
+        if not args.fastdesign:
+            outPath = Path("sampling", "rosetta", coords_path.parent.parent.stem, "minmover", str(pdb_id))
 
         msk = np.round(coords_6d[-1])
         L = math.sqrt(len(msk[msk == 1]))
