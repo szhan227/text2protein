@@ -108,21 +108,40 @@ if __name__ == '__main__':
     scores = []
     num_sampling = len(rosetta_sampling_paths)
     num_training = len(train_pdb_paths)
+    to_save = dict()
+    samples = dict()
     for i, target_path in enumerate(rosetta_sampling_paths):
+        sample_name = "sampled_" + target_path.parent.parent.name
+        sampled_scores = []
         for j, reference_path in enumerate(train_pdb_paths):
             # reference_path = os.path.join(raw_pdb_dir, reference_path[:-3] + '.pdb')
             try:
                 score = tm_score(target_path, reference_path)
                 scores.append(score)
+                sampled_scores.append(score)
                 print(f'\rCalculating TM score: {i + 1}/{num_sampling}, {j + 1}/{num_training}', end='')
             except Exception as e:
                 print('catch exception in tm_score, but ignore it.')
+        if len(sampled_scores) > 0:
+            sample_min = min(sampled_scores)
+            sample_max = max(sampled_scores)
+            sample_avg = sum(sampled_scores) / len(sampled_scores)
+            samples[sample_name] = dict(sample_min=sample_min,
+                                        sample_max=sample_max,
+                                        sample_avg=sample_avg)
     print()
 
+    to_save['samples'] = samples
     tm_max = max(scores)
     tm_min = min(scores)
     tm_avg = sum(scores) / max(1, len(scores))
     print(tm_max, tm_min, tm_avg)
+    to_save['samples'] = samples
+    to_save['tm_max'] = tm_max
+    to_save['tm_min'] = tm_min
+    to_save['tm_avg'] = tm_avg
+    to_save['reference_count'] = len(train_pdb_paths)
+    to_save['target_count'] = len(rosetta_sampling_paths)
     to_save = dict(tm_max=tm_max,
                    tm_min=tm_min,
                    tm_avg=tm_avg,
