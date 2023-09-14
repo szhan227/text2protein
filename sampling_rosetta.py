@@ -4,8 +4,8 @@ import os
 import numpy as np
 from pathlib import Path
 import pickle as pkl
-# from pyrosetta import *
-# import rosetta_min.run as rosetta
+from pyrosetta import *
+import rosetta_min.run as rosetta
 import argparse
 from tqdm import tqdm
 import time
