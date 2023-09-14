@@ -113,15 +113,19 @@ if __name__ == '__main__':
     for i, target_path in enumerate(rosetta_sampling_paths):
         sample_name = "sampled_" + target_path.parent.parent.name
         sampled_scores = []
-        for j, reference_path in enumerate(train_pdb_paths):
+
+        progress_bar = tqdm(enumerate(train_pdb_paths))
+        err = 0
+        for j, reference_path in progress_bar:
             # reference_path = os.path.join(raw_pdb_dir, reference_path[:-3] + '.pdb')
             try:
                 score = tm_score(target_path, reference_path)
                 scores.append(score)
                 sampled_scores.append(score)
-                print(f'\rCalculating TM score: {i + 1}/{num_sampling}, {j + 1}/{num_training}', end='')
+                progress_bar.set_description(f'Calculating TM score: {i + 1}/{num_sampling}, {j + 1}/{num_training}, err: {err}')
             except Exception as e:
-                print('catch exception in tm_score, but ignore it.')
+                err += 1
+                # print('catch exception in tm_score, but ignore it.')
         if len(sampled_scores) > 0:
             sample_min = min(sampled_scores)
             sample_max = max(sampled_scores)
@@ -149,6 +153,6 @@ if __name__ == '__main__':
                    target_count=len(rosetta_sampling_paths)
                    )
 
-    with open('tm-scores.yaml', 'w') as f:
+    with open('tm-scores.json', 'w') as f:
         json.dump(to_save, f, indent=4)
 
