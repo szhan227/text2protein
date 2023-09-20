@@ -50,10 +50,13 @@ def process_pdbs():
 
 
 if __name__ == '__main__':
+
+    # specify your own config path
     config_path = 'configs/test_config_large.yml'
     with open(config_path, 'r') as f:
         config = EasyDict(yaml.safe_load(f))
 
+    # specify your own processed dataset path
     processed_dataset_path = './processed-pdb-dicts'
     dataset = ProteinProcessedDataset(processed_dataset_path)
 

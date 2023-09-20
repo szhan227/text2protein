@@ -34,9 +34,6 @@ def main(rank):
         config = EasyDict(yaml.safe_load(f))
 
     device = config.device
-    # if device == 'cuda':
-    #     device = torch.device('cuda', rank)
-    # torch.cuda.set_device(rank)
 
     ss_constraints = True if config.data.num_channels == 8 else False
 
@@ -44,28 +41,8 @@ def main(rank):
     caption_path = config.data.caption_path
     processed_dataset_path = config.data.processed_dataset_path
 
-    # dataset = ProteinDataset('./pdbs', './ann.json',
-    #                          config.data.min_res_num,
-    #                          config.data.max_res_num, ss_constraints,
-    #                          local_test=args.local_test)
-
-    # dataset = ProteinDataset(dataset_path, caption_path,
-    #                          config.data.min_res_num,
-    #                          config.data.max_res_num, ss_constraints,
-    #                          local_test=args.local_test)
-
     dataset = ProteinProcessedDataset(processed_dataset_path)
-    # dataset = ProteinProcessedDataset('./processed-pdb-dicts')
 
-    # for bt in dataset:
-    #     for k, v in bt.items():
-    #         if hasattr(v, 'shape'):
-    #             print(k, v.shape)
-    #         else:
-    #             print(k, v)
-    #     print('------------------------')
-    # return
-    # dataset = ProteinProcessedDataset('./processed-pdb-dicts')
 
 
     train_size = max(1, int(0.95 * len(dataset)))
@@ -75,21 +52,12 @@ def main(rank):
 
 
 
-    train_sampler = torch.utils.data.RandomSampler(
-        train_ds,
-        replacement=True,
-        num_samples=config.training.n_iters * config.training.batch_size
-    )
     train_dl = torch.utils.data.DataLoader(
         train_ds,
-        # sampler=train_sampler,
         shuffle=True,
         batch_size=config.training.batch_size,
         collate_fn=PaddingCollate(config.data.max_res_num)
     )
-
-    train_iter = iter(train_dl)
-
 
     test_sampler = torch.utils.data.RandomSampler(
         test_ds,
@@ -102,8 +70,6 @@ def main(rank):
         batch_size=config.training.batch_size,
         collate_fn=PaddingCollate(config.data.max_res_num)
     )
-    test_iter = iter(test_dl)
-
 
     # Create directories for experimental logs
     if args.resume is not None:
@@ -144,22 +110,7 @@ def main(rank):
     print('Loaded tokenizer')
     llm = LlamaForCausalLM.from_pretrained(llm_name)
     print('Loaded llm to cpu')
-    # tokenizer = llm = None
 
-    # if n_gpus > 1:
-    #     score_model = torch.nn.parallel.DistributedDataParallel(
-    #         score_model,
-    #         device_ids=[device],
-    #         broadcast_buffers=False,
-    #         find_unused_parameters=False)
-    #
-    #     print('put score model in parapllel')
-    #     llm = torch.nn.parallel.DistributedDataParallel(
-    #         llm,
-    #         device_ids=[device],
-    #         broadcast_buffers=False,
-    #         find_unused_parameters=False)
-    #     print('put llm in parapllel')
 
     state = dict(optimizer=optimizer, model=score_model, llm=(tokenizer, llm), ema=ema, step=0)
     # Create checkpoints directory
@@ -226,29 +177,14 @@ def main(rank):
             loss = train_step_fn(state, batch, condition=config.model.condition)
             all_train_losses.append(loss.item())
             avg_loss = sum(all_train_losses) / len(all_train_losses)
-            # print(f"\rStep {step}: batch_loss: {loss.item()}, avg_loss: {avg_loss}", end='')
             train_progress_bar.set_description(f"Epoch: {epoch}, Step: {step + 1}/{train_batch_num}, batch_loss: {loss.item()}, avg_loss: {avg_loss}")
             cur_step = epoch * train_batch_num + step
             if cur_step % config.training.log_freq == 0:
                 writer.add_scalar("training_loss", loss, cur_step)
-                # writer.add_scalar("avg_training_loss", avg_loss, cur_step)
 
-
-
-            # Save a checkpoint periodically and generate samples if needed:
-        # if step != 0 and step % config.training.snapshot_freq == 0 or step == config.training.n_iters:
-
-        # Save the checkpoint every epoch.
-        # save_step = step // config.training.snapshot_freq
-        # ckpt_path = checkpoint_dir.joinpath(f'checkpoint_{save_step}.pth')
-        # print('show ckpt_path', ckpt_path)
-        # Save a temporary checkpoint to resume training after pre-emption periodically
-        # if cur_step != 0 and cur_step % config.training.snapshot_freq_for_preemption == 0:
-        # save latest checkpoint meta every epoch
         save_checkpoint(checkpoint_meta_dir, state)
 
-        # save checkpoint every epoch
-        # save_checkpoint(checkpoint_dir.joinpath(f'checkpoint_epoch_{epoch}.pth'), state)
+
 
         # -----------------------------Evaluation---------------------------------
         # Report the loss on an evaluation dataset periodically
@@ -256,14 +192,7 @@ def main(rank):
             eval_batch = recursive_to(eval_batch, device)
             eval_batch = random_mask_batch(eval_batch, config)
             eval_loss = eval_step_fn(state, eval_batch, condition=config.model.condition)
-            # writer.add_scalar("eval_loss", eval_loss.item(), cur_step)
             all_eval_losses.append(eval_loss.item())
-        # if cur_step % config.training.eval_freq == 0:
-        #     eval_batch = recursive_to(next(test_iter), device)
-        #     eval_batch = random_mask_batch(eval_batch, config)
-        #     eval_loss = eval_step_fn(state, eval_batch, condition=config.model.condition)
-        #     writer.add_scalar("eval_loss", eval_loss.item(), cur_step)
-
 
         # Generate and save samples
         if config.training.snapshot_sampling:

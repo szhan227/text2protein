@@ -63,6 +63,7 @@ def max_min_avg_tm_score(target_list, reference_list):
 
 if __name__ == '__main__':
 
+    # use your own paths
     training_dir = Path('./../training/test_config/2023_08_15__04_04_10')
     rosetta_sampling_dir = Path('./../sampling/rosetta/test_config')
     train_ids_path = training_dir.joinpath('train_ids.txt')

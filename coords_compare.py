@@ -10,6 +10,7 @@ from tqdm import tqdm
 
 def coord_compare():
 
+    # customize your own path
     sampled_dir = './sampling/coords_6d/test_config/2023_08_15__04_04_10/test'
     ori_path = './../processed-all-pdb-dicts'
 
