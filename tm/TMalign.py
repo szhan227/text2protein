@@ -127,7 +127,7 @@ def train_gen_tm_compare():
                 score = tm_score(target_path, reference_path)
                 scores.append(score)
                 sampled_scores.append(score)
-                progress_bar.set_description(f'Calculating TM score: {i + 1}/{num_sampling}, {j + 1}/{num_training}, [err: {err}]')
+                progress_bar.set_description(f'Calculating TM score: {i + 1}/{num_sampling}, {j + 1}/{num_training}, score: {score}, [err: {err}]')
             except Exception as e:
                 err += 1
                 # print('catch exception in tm_score, but ignore it.')
