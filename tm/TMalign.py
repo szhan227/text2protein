@@ -241,7 +241,7 @@ def gt_gen_tm_compare():
 
 
 if __name__ == '__main__':
-    # train_gen_tm_compare()
-    gt_gen_tm_compare()
+    train_gen_tm_compare()
+    # gt_gen_tm_compare()
 
 
