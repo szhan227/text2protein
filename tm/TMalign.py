@@ -61,6 +61,8 @@ def max_min_avg_tm_score(target_list, reference_list):
     return tm_max, tm_min, tm_avg
 
 def train_gen_tm_compare():
+
+    import random
     # use your own paths
     training_dir = Path('./../training/test_config/2023_08_15__04_04_10')
     rosetta_sampling_dir = Path('./../sampling/rosetta/test_config')
@@ -77,6 +79,10 @@ def train_gen_tm_compare():
             mid_name = train_id[3:5]
             train_pdb_path = raw_pdb_dir.joinpath(mid_name, f'{train_id[2:]}.pdb')
             train_pdb_paths.append(train_pdb_path)
+            if len(train_pdb_paths) >= 100:
+                break
+
+    random.shuffle(train_pdb_paths)
 
     # for train_id in tqdm(train_ids, desc='Loading train pdb paths'):
     #     mid_name = train_id[1:3] # two character middle name
@@ -129,9 +135,11 @@ def train_gen_tm_compare():
             sample_min = min(sampled_scores)
             sample_max = max(sampled_scores)
             sample_avg = sum(sampled_scores) / len(sampled_scores)
+            sample_std = np.std(sampled_scores)
             samples[sample_name] = dict(sample_min=sample_min,
                                         sample_max=sample_max,
-                                        sample_avg=sample_avg)
+                                        sample_avg=sample_avg,
+                                        sample_std=sample_std)
     print()
 
     to_save['samples'] = samples
