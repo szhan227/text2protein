@@ -5,7 +5,7 @@ import yaml
 
 
 def prepare_dataset():
-    config_path = 'configs/test_config_large.yml'
+    config_path = 'configs/test_config.yml'
     with open(config_path, 'r') as f:
         config = EasyDict(yaml.safe_load(f))
 

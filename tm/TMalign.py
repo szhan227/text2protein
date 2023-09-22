@@ -60,9 +60,7 @@ def max_min_avg_tm_score(target_list, reference_list):
     tm_avg = sum(scores) / len(scores)
     return tm_max, tm_min, tm_avg
 
-
-if __name__ == '__main__':
-
+def train_gen_tm_compare():
     # use your own paths
     training_dir = Path('./../training/test_config/2023_08_15__04_04_10')
     rosetta_sampling_dir = Path('./../sampling/rosetta/test_config')
@@ -140,11 +138,13 @@ if __name__ == '__main__':
     tm_max = max(scores)
     tm_min = min(scores)
     tm_avg = sum(scores) / max(1, len(scores))
+    tm_std = np.std(scores)
     print(tm_max, tm_min, tm_avg)
     to_save['samples'] = samples
     to_save['tm_max'] = tm_max
     to_save['tm_min'] = tm_min
     to_save['tm_avg'] = tm_avg
+    to_save['tm_std'] = tm_std
     to_save['reference_count'] = len(train_pdb_paths)
     to_save['target_count'] = len(rosetta_sampling_paths)
     to_save = dict(tm_max=tm_max,
@@ -156,4 +156,89 @@ if __name__ == '__main__':
 
     with open('tm-scores.json', 'w') as f:
         json.dump(to_save, f, indent=4)
+
+def gt_gen_tm_compare():
+    print('Start to calculate TM score...')
+    gt_pdb_dir = Path('D:\.kube').joinpath('testpdb')
+    designed_pdb_dir = Path('D:\.kube').joinpath('rosetta_designed')
+    pdb_names = os.listdir(gt_pdb_dir)
+
+
+    scores = []
+    num_sampling = len(pdb_names)
+    # num_training = len(train_pdb_paths)
+    to_save = dict()
+    samples = dict()
+
+    gt50 = 0
+    gt40 = 0
+    gt30 = 0
+    lt30 = 0
+
+    for i, pdb_filename in enumerate(pdb_names):
+        pdb_name = pdb_filename[:-4]
+        sample_name = "sampled_" + pdb_filename
+
+        gt_path = gt_pdb_dir.joinpath(pdb_filename)
+        designed_path = designed_pdb_dir.joinpath(pdb_name, 'round_1', 'final_structure.pdb')
+
+        err = 0
+
+        try:
+            score = tm_score(designed_path, gt_path)
+            scores.append(score)
+            samples[pdb_name] = score
+            if score > 0.5:
+                gt50 += 1
+            elif score > 0.4:
+                gt40 += 1
+            elif score > 0.3:
+                gt30 += 1
+            else:
+                lt30 += 1
+            # sampled_scores.append(score)
+            print(f'\rCalculating TM score bewteen gt and designed {pdb_name}: {i + 1}/{num_sampling}, score: {score}, [err: {err}]')
+        except Exception as e:
+            err += 1
+            print('catch exception in tm_score, but ignore it.')
+
+        # if len(sampled_scores) > 0:
+        #     sample_min = min(sampled_scores)
+        #     sample_max = max(sampled_scores)
+        #     sample_avg = sum(sampled_scores) / len(sampled_scores)
+        #     samples[sample_name] = dict(sample_min=sample_min,
+        #                                 sample_max=sample_max,
+        #                                 sample_avg=sample_avg)
+    print()
+
+    to_save['samples'] = samples
+    tm_max = max(scores)
+    tm_min = min(scores)
+    tm_avg = sum(scores) / max(1, len(scores))
+    tm_std = np.std(scores)
+    print(tm_max, tm_min, tm_avg, gt50, gt40, gt30, lt30, tm_std)
+    to_save['samples'] = samples
+    to_save['tm_max'] = tm_max
+    to_save['tm_min'] = tm_min
+    to_save['tm_avg'] = tm_avg
+    to_save['tm_std'] = tm_std
+    to_save['reference_count'] = num_sampling
+    to_save['gt50'] = gt50
+    to_save['gt40'] = gt40
+    to_save['gt30'] = gt30
+    to_save['lt30'] = lt30
+    # to_save = dict(tm_max=tm_max,
+    #                tm_min=tm_min,
+    #                tm_avg=tm_avg,
+    #                reference_count=len(train_pdb_paths),
+    #                target_count=len(rosetta_sampling_paths)
+    #                )
+
+    with open('tm-scores.json', 'w') as f:
+        json.dump(to_save, f, indent=4)
+
+
+if __name__ == '__main__':
+    train_gen_tm_compare()
+
 
