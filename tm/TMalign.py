@@ -155,12 +155,6 @@ def train_gen_tm_compare():
     to_save['tm_std'] = tm_std
     to_save['reference_count'] = len(train_pdb_paths)
     to_save['target_count'] = len(rosetta_sampling_paths)
-    to_save = dict(tm_max=tm_max,
-                   tm_min=tm_min,
-                   tm_avg=tm_avg,
-                   reference_count=len(train_pdb_paths),
-                   target_count=len(rosetta_sampling_paths)
-                   )
 
     with open('tm-scores.json', 'w') as f:
         json.dump(to_save, f, indent=4)
