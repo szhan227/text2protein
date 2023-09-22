@@ -20,7 +20,8 @@ def coord_compare():
     sampled_file_paths = os.listdir(sampled_dir)
     prefix_len, suffix_len = len('sampled_'), len('.pkl')
 
-    losses = list()
+    to_save = dict()
+    losses = dict()
     loss_sum = 0.0
 
     progress_bar = tqdm(sampled_file_paths)
@@ -37,15 +38,24 @@ def coord_compare():
             sampled_coords = sampled_coords[0]
 
         loss = F.mse_loss(gt_coords_6d, sampled_coords[:, :num_res, :num_res]).item()
-        losses.append(f'{pdb_name}: {loss}')
+        # losses.append(f'{pdb_name}: {loss}')
+        losses[pdb_name] = loss
         loss_sum += loss
         progress_bar.set_description(f'{pdb_name}: {loss}')
 
-    avg_loss = loss_sum / len(sampled_file_paths)
+    avg_loss = sum(losses.values()) / len(losses)
+    min_loss = min(losses.values())
+    max_loss = max(losses.values())
+    std_loss = torch.std(torch.tensor(list(losses.values()))).item()
     losses.append(f'avg_loss: {avg_loss}')
+    to_save['avg_loss'] = avg_loss
+    to_save['min_loss'] = min_loss
+    to_save['max_loss'] = max_loss
+    to_save['std_loss'] = std_loss
+    to_save['losses'] = losses
 
     dump_path = Path(sampled_dir).parent
-    with open(dump_path.joinpath('coords_6d_losses.txt'), 'w') as ff:
+    with open(dump_path.joinpath('coords_6d_losses.yaml'), 'w') as ff:
         yaml.dump(losses, ff)
 
 
