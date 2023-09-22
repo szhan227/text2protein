@@ -47,16 +47,16 @@ def coord_compare():
     min_loss = min(losses.values())
     max_loss = max(losses.values())
     std_loss = torch.std(torch.tensor(list(losses.values()))).item()
-    losses.append(f'avg_loss: {avg_loss}')
+    to_save['losses'] = losses
     to_save['avg_loss'] = avg_loss
     to_save['min_loss'] = min_loss
     to_save['max_loss'] = max_loss
     to_save['std_loss'] = std_loss
-    to_save['losses'] = losses
+
 
     dump_path = Path(sampled_dir).parent
     with open(dump_path.joinpath('coords_6d_losses.yaml'), 'w') as ff:
-        yaml.dump(losses, ff)
+        yaml.dump(to_save, ff)
 
 
 if __name__ == '__main__':
